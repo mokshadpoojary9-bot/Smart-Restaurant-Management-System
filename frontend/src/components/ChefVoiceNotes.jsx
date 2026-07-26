@@ -3,7 +3,6 @@ import { Mic, Square, Trash2, Loader2, Play, Pause, Wand2 } from "lucide-react";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-
 /**
  * Chef Voice Notes — kitchen/admin only recorder + list.
  * Uses MediaRecorder API; audio saved as base64 in MongoDB.
@@ -158,14 +157,17 @@ export default function ChefVoiceNotes({ menu = [] }) {
             <AnimatePresence>
               {notes.map((n) => (
                 <motion.div key={n.id} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  className="p-3 rounded-xl border border-border flex items-center gap-3" data-testid={`vn-item-${n.id}`}>
-                  <audio src={`data:${n.mime_type};base64,${n.audio_base64}`} controls className="flex-1" />
-                  <div className="min-w-0 hidden md:block">
-                    {n.dish_name && <div className="text-sm font-semibold truncate">{n.dish_name}</div>}
-                    {n.message && <div className="text-xs text-muted-foreground truncate">{n.message}</div>}
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{new Date(n.created_at).toLocaleTimeString()}</div>
+                  className="p-3 rounded-xl border border-border bg-background/60" data-testid={`vn-item-${n.id}`}>
+                  <MiniPlayer note={n} />
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <div className="min-w-0 text-xs text-muted-foreground">
+                      {n.dish_name && <span className="font-semibold text-foreground">{n.dish_name}</span>}
+                      {n.dish_name && n.message && <span> · </span>}
+                      {n.message && <span className="italic">"{n.message}"</span>}
+                      <span className="ml-2">{new Date(n.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                    </div>
+                    <button data-testid={`vn-del-${n.id}`} onClick={() => remove(n.id)} className="h-8 w-8 rounded-full text-coral-500 hover:bg-coral-500/10 shrink-0"><Trash2 className="w-3.5 h-3.5 mx-auto" /></button>
                   </div>
-                  <button data-testid={`vn-del-${n.id}`} onClick={() => remove(n.id)} className="h-8 w-8 rounded-full text-coral-500 hover:bg-coral-500/10"><Trash2 className="w-3.5 h-3.5 mx-auto" /></button>
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -183,4 +185,79 @@ function blobToBase64(blob) {
     r.onerror = reject;
     r.readAsDataURL(blob);
   });
+}
+
+/** Compact custom audio player used inside the kitchen list. */
+function MiniPlayer({ note }) {
+  const [playing, setPlaying] = useState(false);
+  const [cur, setCur] = useState(0);
+  const [dur, setDur] = useState(0);
+  const ref = useRef(null);
+
+  const toggle = async () => {
+    const a = ref.current;
+    if (!a) return;
+    if (playing) a.pause();
+    else { try { await a.play(); } catch {} }
+  };
+
+  const onTime = () => {
+    const a = ref.current; if (!a) return;
+    setCur(a.currentTime || 0);
+    if (isFinite(a.duration)) setDur(a.duration);
+  };
+
+  const pct = dur ? (cur / dur) * 100 : 0;
+
+  return (
+    <div className="flex items-center gap-3">
+      <motion.button
+        onClick={toggle}
+        whileTap={{ scale: 0.9 }}
+        className="shrink-0 w-11 h-11 rounded-full bg-gradient-to-br from-ember-400 to-coral-500 text-neutral-900 flex items-center justify-center"
+        aria-label={playing ? "Pause" : "Play"}
+      >
+        {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+      </motion.button>
+      <div className="flex-1">
+        <div className="flex items-end gap-[2px] h-4">
+          {Array.from({ length: 24 }).map((_, i) => {
+            const seed = (Math.sin(i * 1.7) + 1) / 2;
+            const base = 25 + seed * 70;
+            return (
+              <motion.span
+                key={i}
+                className={`w-[3px] rounded-full ${(i / 24) < pct / 100 ? "bg-ember-400" : "bg-muted"}`}
+                animate={playing ? { scaleY: [1, 0.4 + seed, 1] } : { scaleY: 1 }}
+                transition={{ duration: 0.8 + seed * 0.6, repeat: playing ? Infinity : 0 }}
+                style={{ height: `${base}%`, transformOrigin: "bottom" }}
+              />
+            );
+          })}
+        </div>
+        <div className="mt-1 h-1 rounded-full bg-muted overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-ember-400 to-coral-500 transition-all" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+      <div className="text-[11px] tabular-nums text-muted-foreground shrink-0">{fmt(cur)}/{fmt(dur || note?.duration_seconds || 0)}</div>
+      <audio
+        ref={ref}
+        src={`data:${note.mime_type};base64,${note.audio_base64}`}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => { setPlaying(false); setCur(0); }}
+        onTimeUpdate={onTime}
+        onLoadedMetadata={onTime}
+        onDurationChange={onTime}
+        preload="metadata"
+      />
+    </div>
+  );
+}
+
+function fmt(s) {
+  s = Math.max(0, Math.floor(s || 0));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r < 10 ? "0" : ""}${r}`;
 }
