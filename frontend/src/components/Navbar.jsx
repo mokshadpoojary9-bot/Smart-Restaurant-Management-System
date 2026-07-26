@@ -5,6 +5,7 @@ import { useCart } from "@/lib/CartContext";
 import { Sun, Moon, ShoppingBag, LogOut, ChefHat, LayoutDashboard, User, Utensils, ClipboardList, CalendarRange } from "lucide-react";
 import { motion } from "framer-motion";
 import NotificationBell from "./NotificationBell";
+import VegBadge from "./VegBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -54,6 +55,7 @@ export default function Navbar() {
             <span className="font-display text-2xl tracking-tight">Ember &amp; Oak</span>
             <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Smart Restaurant OS</span>
           </div>
+          <VegBadge size="xs" className="ml-2 hidden sm:inline-flex" />
         </Link>
 
         <nav className="hidden md:flex items-center gap-1">

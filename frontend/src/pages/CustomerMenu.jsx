@@ -2,14 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import api from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { FlipCard } from "@/components/FlipCard";
-import { Search, Plus, Leaf, Drumstick, Star, Flame, Sparkles, Loader2 } from "lucide-react";
+import { Search, Plus, Leaf, Star, Flame, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import VoiceNotesPlayer from "@/components/VoiceNotesPlayer";
+import VegBadge, { PureVegBanner } from "@/components/VegBadge";
 
 const CATS_ALL = "All";
+const STOP_WORDS = new Set(["cuisine", "cuisines", "dish", "dishes", "food", "recipe", "recipes", "meal", "the", "and", "with", "some", "any", "a", "an", "of", "in", "on"]);
 
 export default function CustomerMenu() {
   const { user } = useAuth();
@@ -19,7 +21,6 @@ export default function CustomerMenu() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState(CATS_ALL);
-  const [vegOnly, setVegOnly] = useState(false);
   const [recs, setRecs] = useState(null);
   const [recLoading, setRecLoading] = useState(false);
 
@@ -45,12 +46,16 @@ export default function CustomerMenu() {
   }, [user]);
 
   const filtered = useMemo(() => {
-    return items.filter((i) =>
-      (cat === CATS_ALL || i.category === cat) &&
-      (!vegOnly || i.is_veg) &&
-      (!q || i.name.toLowerCase().includes(q.toLowerCase()) || i.description.toLowerCase().includes(q.toLowerCase()))
-    );
-  }, [items, cat, vegOnly, q]);
+    const raw = q.trim().toLowerCase();
+    const words = raw.split(/\s+/).filter((w) => w && w.length >= 2 && !STOP_WORDS.has(w));
+    return items.filter((i) => {
+      if (cat !== CATS_ALL && i.category !== cat) return false;
+      if (!words.length) return true;
+      const hay = [i.name, i.description, i.category, ...(i.tags || []), ...(i.allergens || [])]
+        .join(" ").toLowerCase();
+      return words.some((w) => hay.includes(w));
+    });
+  }, [items, cat, q]);
 
   const onAdd = (m) => {
     if (!user) { toast.error("Please sign in to place an order"); return; }
@@ -62,11 +67,16 @@ export default function CustomerMenu() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8">
-      <div className="mb-8">
-        <div className="text-xs uppercase tracking-[0.3em] text-ember-400 mb-2">Tonight's menu</div>
-        <h1 className="font-display text-4xl sm:text-5xl">Small fires, bold flavours.</h1>
-        <p className="text-muted-foreground mt-2 max-w-xl">Tap any dish to flip the card and read allergens, prep time and story. Availability updates in real time.</p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="text-xs uppercase tracking-[0.3em] text-ember-400 mb-2">Tonight's menu</div>
+          <h1 className="font-display text-4xl sm:text-5xl">Small fires, bold flavours.</h1>
+          <p className="text-muted-foreground mt-2 max-w-xl">Tap any dish to flip the card and read allergens, prep time and story. Availability updates in real time.</p>
+        </div>
+        <VegBadge size="md" />
       </div>
+
+      <PureVegBanner className="mb-6" />
 
       {/* Chef Voice Notes */}
       <VoiceNotesPlayer />
@@ -107,13 +117,11 @@ export default function CustomerMenu() {
           <input
             data-testid="menu-search"
             className="w-full h-11 pl-9 pr-3 rounded-full border border-border bg-background focus:ring-2 focus:ring-ember-400/50 outline-none"
-            placeholder="Search dishes, ingredients, tags..."
+            placeholder="Try 'paneer', 'indian', 'italian', 'spicy', 'mushroom'..."
             value={q} onChange={(e) => setQ(e.target.value)}
           />
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input data-testid="veg-only" type="checkbox" checked={vegOnly} onChange={(e) => setVegOnly(e.target.checked)} className="accent-ember-500" /> Veg only
-        </label>
+        <span className="text-xs uppercase tracking-widest text-emerald-500 inline-flex items-center gap-1"><Leaf className="w-3 h-3" /> Every dish is 100% veg</span>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-3 mb-6">
@@ -137,7 +145,7 @@ export default function CustomerMenu() {
           </div>
           <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {items
-              .filter((i) => (cat === CATS_ALL || i.category === cat) && (!vegOnly || i.is_veg))
+              .filter((i) => cat === CATS_ALL || i.category === cat)
               .map((m) => (
                 <motion.div key={m.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
                   <FlipCard
@@ -175,11 +183,11 @@ function MenuFront({ item, onAdd }) {
         <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/80 via-transparent to-transparent" />
         <div className="absolute top-3 left-3 flex gap-2">
-          <span className={`text-[10px] uppercase tracking-widest px-2 py-1 rounded-full font-semibold ${item.is_veg ? "bg-emerald-500/20 text-emerald-300" : "bg-coral-500/20 text-coral-500"}`}>
-            {item.is_veg ? <span className="inline-flex items-center gap-1"><Leaf className="w-3 h-3" /> Veg</span> : <span className="inline-flex items-center gap-1"><Drumstick className="w-3 h-3" /> Non-veg</span>}
+          <span className="text-[10px] uppercase tracking-widest px-2 py-1 rounded-full font-bold bg-emerald-500 text-white shadow-md inline-flex items-center gap-1" data-testid={`veg-badge-${item.id}`}>
+            <Leaf className="w-3 h-3" /> VEG
           </span>
           {item.spice_level >= 2 && (
-            <span className="text-[10px] uppercase tracking-widest px-2 py-1 rounded-full font-semibold bg-coral-500/20 text-coral-400 inline-flex items-center gap-1"><Flame className="w-3 h-3" /> Spicy</span>
+            <span className="text-[10px] uppercase tracking-widest px-2 py-1 rounded-full font-semibold bg-coral-500 text-white inline-flex items-center gap-1"><Flame className="w-3 h-3" /> Spicy</span>
           )}
         </div>
         {!item.available && (

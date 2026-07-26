@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { ArrowRight, Zap, ChefHat, BarChart3, Bell, Utensils, Clock, Boxes, Users, Sparkles } from "lucide-react";
+import VegBadge, { PureVegBanner } from "@/components/VegBadge";
 
 const Hero3D = lazy(() => import("@/components/Hero3D"));
 
@@ -25,9 +26,12 @@ export default function Landing() {
       <section className="relative min-h-[calc(100vh-4rem)] max-w-[1400px] mx-auto px-6 md:px-12 py-12 md:py-20">
         <div className="grid lg:grid-cols-2 gap-8 items-center relative">
           <motion.div variants={container} initial="hidden" animate="visible" className="space-y-6 relative z-10">
-            <motion.div variants={item} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ember-400/10 border border-ember-400/30">
-              <Sparkles className="w-3.5 h-3.5 text-ember-400" />
-              <span className="text-xs uppercase tracking-[0.25em] text-ember-400">VibeAthon 6.0 · Smart Restaurant OS</span>
+            <motion.div variants={item} className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ember-400/10 border border-ember-400/30">
+                <Sparkles className="w-3.5 h-3.5 text-ember-400" />
+                <span className="text-xs uppercase tracking-[0.25em] text-ember-400">VibeAthon 6.0 · Smart Restaurant OS</span>
+              </div>
+              <VegBadge size="sm" />
             </motion.div>
             <motion.h1 variants={item} className="font-display text-5xl sm:text-6xl lg:text-7xl leading-[0.95] tracking-tight">
               The restaurant<br /><span className="italic text-ember-400">runs itself</span>.<br />You run the show.
@@ -66,6 +70,11 @@ export default function Landing() {
             <div className="absolute inset-0 pointer-events-none rounded-3xl bg-gradient-to-t from-background to-transparent opacity-40" />
           </div>
         </div>
+      </section>
+
+      {/* PURE VEG BANNER */}
+      <section className="relative max-w-[1400px] mx-auto px-6 md:px-12 pt-2 pb-4">
+        <PureVegBanner />
       </section>
 
       {/* PROBLEMS -> SOLUTIONS */}

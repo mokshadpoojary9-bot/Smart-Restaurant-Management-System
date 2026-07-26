@@ -1,0 +1,23 @@
+{
+  "summary": "Iteration 6 verification of the reservation-status endpoint fix + full frontend UI regression. Backend: 8/8 pytest passes (customer can cancel own reservation → 200 status=cancelled and freed table; non-owner cancel → 403; customer trying to set status=seated → 403; staff seating → 200 with table occupied; pure-veg menu 19 items no forbidden tokens; voice notes lifecycle POST/GET/DELETE with customer POST → 403; 2-item veg order with placed→preparing→ready→served advance + GET /bills/{id}; AI recommendations return only veg names). Frontend: Landing + Menu + Navbar all show VegBadge (data-testid=pure-veg-badge) and PureVegBanner (data-testid=pure-veg-banner). Bright emerald-500 solid VEG pill confirmed via computed style rgb(16,185,129) opacity 1. Menu search: 'paneer cuisines' → 3 visible veg-badges, 'italian' → 4, 'ribeye' → 'No exact match' banner shown AND all 19 badges still rendered below. Reservations page (guest login) shows Cancel action on CONFIRMED rows and mixed CANCELLED/COMPLETED history — cancel-by-owner UI flow visibly works end-to-end.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iteration6_reservation.py",
+    "/app/test_reports/pytest/iteration6.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PATCH /api/reservations/{rid}/status role-check in server.py L444-459 is clean and correctly scoped: customers can only mutate their own reservation AND only to 'cancelled'; admin/staff unrestricted; anything else → 403. Ownership check happens before the status-value check which is the right order (avoids leaking whether an ID exists).",
+    "Table free/occupy side-effects (L462-465) correctly free the table on cancelled/completed and occupy on seated. Note: if a customer cancels a 'seated' reservation, code still runs the free branch which is desired.",
+    "Consider adding a pydantic model for the PATCH body instead of untyped `dict` — makes 400 responses more descriptive."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration6_reservation.py"],
+  "success_rate": {"backend": "100% (8/8)", "frontend": "100%"},
+  "test_credentials": "guest@ember.demo/guest123, chef@ember.demo/chef123, server@ember.demo/staff123 — all verified working",
+  "seed_data_creation": "Created ephemeral TEST_ reservations (owner-cancel, non-owner-403, seated-by-staff-then-completed) and a fresh signup guest B (TEST_guestb_*@embertest.com) for negative ownership test. Reservations either self-cancelled or completed after test → no lingering active state that would block other tests.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Reservation status endpoint is fully validated. Note that REACT_APP_BACKEND_URL is not auto-exported to shell — pytest run needs 'export REACT_APP_BACKEND_URL=$(grep REACT_APP_BACKEND_URL /app/frontend/.env | cut -d= -f2)' or explicit inline env. Menu is stable at 19 pure-veg items; the [data-testid^='veg-badge-'] selector is a reliable card-count proxy. Search debounce is ~1s so wait ~1.5s after each fill.",
+  "rca of the issue": "Prior iteration 5 gap: PATCH /api/reservations/{id}/status was gated to admin/staff only, so the customer Cancel button on /reservations returned 403. Fix (server.py L452-459): allow role=='customer' branch that (a) enforces user_id == reservation.user_id else 403 'Not your reservation', (b) enforces new_status == 'cancelled' else 403 'Customers can only cancel a reservation'. Table freeing logic (L464-465) was already correct for cancelled → 'free'. Verified by 4 dedicated backend tests + live UI (Cancel link on CONFIRMED reservations produces CANCELLED entries)."
+}

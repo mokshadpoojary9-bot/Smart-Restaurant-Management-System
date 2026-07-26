@@ -442,12 +442,26 @@ async def list_reservations(user=Depends(get_current_user)):
     return await db.reservations.find(q, {"_id": 0}).sort("created_at", -1).to_list(500)
 
 @api.patch("/reservations/{rid}/status")
-async def update_res_status(rid: str, body: dict, user=Depends(require_roles("admin", "staff"))):
-    await db.reservations.update_one({"id": rid}, {"$set": {"status": body["status"]}})
+async def update_res_status(rid: str, body: dict, user=Depends(get_current_user)):
+    new_status = body.get("status")
+    if new_status not in ("confirmed", "seated", "cancelled", "completed"):
+        raise HTTPException(400, "invalid status")
     r = await db.reservations.find_one({"id": rid}, {"_id": 0})
-    if r and body["status"] == "seated" and r.get("table_number"):
+    if not r:
+        raise HTTPException(404, "reservation not found")
+    # Customers may only cancel their own reservation. Admin/staff can do anything.
+    if user["role"] == "customer":
+        if r["user_id"] != user["user_id"]:
+            raise HTTPException(403, "Not your reservation")
+        if new_status != "cancelled":
+            raise HTTPException(403, "Customers can only cancel a reservation")
+    elif user["role"] not in ("admin", "staff"):
+        raise HTTPException(403, "Not allowed")
+    await db.reservations.update_one({"id": rid}, {"$set": {"status": new_status}})
+    r = await db.reservations.find_one({"id": rid}, {"_id": 0})
+    if r and new_status == "seated" and r.get("table_number"):
         await db.tables.update_one({"number": r["table_number"]}, {"$set": {"status": "occupied"}})
-    if r and body["status"] in ("cancelled", "completed") and r.get("table_number"):
+    if r and new_status in ("cancelled", "completed") and r.get("table_number"):
         await db.tables.update_one({"number": r["table_number"]}, {"$set": {"status": "free"}})
     return r
 
