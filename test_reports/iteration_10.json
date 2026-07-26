@@ -1,0 +1,22 @@
+{
+  "summary": "Iteration 10 final retest. GUEST_LANDING one-liner fix verified in Login.jsx & Register.jsx. Backend 6/6 pass. Frontend 9/9 flows pass (GUEST_LANDING from '/', post-login restore /menu, chef->/kitchen, server->/staff, authed /login->/menu, authed /register->dashFor(role), anon gate on 9 protected paths, logout, oauth hash callback). All 10 acceptance criteria met.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iteration7_regression.py",
+    "/app/test_reports/pytest/iter10_backend.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "dashFor() and resolveTarget logic duplicated verbatim in Login.jsx and Register.jsx. Minor DRY violation — extract to /app/frontend/src/lib/roles.js for future maintenance.",
+    "Login.jsx and Register.jsx still keep both an in-component `if (user) <Navigate>` guard AND a post-submit imperative navigate(). Consider consolidating; the guard alone would suffice after state updates."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (6/6)", "frontend": "100% (9/9 flows)"},
+  "test_credentials": "guest@ember.demo/guest123 (customer), chef@ember.demo/chef123 (kitchen), server@ember.demo/staff123 (staff) — all verified",
+  "seed_data_creation": "TEST_ReservOwner reservation created and cancelled via backend regression test.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 10 CLOSED — 10/10 flows passing. Fix in Login.jsx & Register.jsx (`const target = (from && from !== '/') ? from : dashFor(role);`) verified to correctly route guest users landing at '/' to /menu, while preserving the deep-link restore behaviour (/menu, /cart, etc.). All auth-gate, logout, OAuth-callback, and authed-hits-/login redirects work. No open bugs.",
+  "rca of the issue": "N/A — issue fixed in this iteration. Previously state.from={pathname:'/'} was used as an explicit target, sending customers back to Landing. New guard `from && from !== '/'` treats root as no-destination and falls through to dashFor(role)."
+}

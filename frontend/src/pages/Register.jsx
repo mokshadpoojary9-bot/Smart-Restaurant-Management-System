@@ -16,9 +16,10 @@ export default function Register() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [busy, setBusy] = useState(false);
 
-  // Already signed in? Bounce to intended destination.
+  // Already signed in? Bounce to intended destination (treat '/' as "no destination").
   if (user) {
-    const target = loc.state?.from?.pathname || dashFor(user.role);
+    const from = loc.state?.from?.pathname;
+    const target = (from && from !== "/") ? from : dashFor(user.role);
     return <Navigate to={target} replace />;
   }
 
@@ -28,7 +29,8 @@ export default function Register() {
     try {
       const u = await signup(form.name, form.email, form.password);
       toast.success(`Welcome, ${u.name}!`);
-      const target = loc.state?.from?.pathname || dashFor(u.role);
+      const from = loc.state?.from?.pathname;
+      const target = (from && from !== "/") ? from : dashFor(u.role);
       navigate(target, { replace: true });
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Signup failed");

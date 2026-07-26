@@ -17,9 +17,10 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Already signed in? Bounce to the intended destination.
+  // Already signed in? Bounce to the intended destination (treat '/' as "no destination").
   if (user) {
-    const target = loc.state?.from?.pathname || dashFor(user.role);
+    const from = loc.state?.from?.pathname;
+    const target = (from && from !== "/") ? from : dashFor(user.role);
     return <Navigate to={target} replace />;
   }
 
@@ -29,7 +30,8 @@ export default function Login() {
     try {
       const u = await login(email, password);
       toast.success(`Welcome back, ${u.name}`);
-      const target = loc.state?.from?.pathname || dashFor(u.role);
+      const from = loc.state?.from?.pathname;
+      const target = (from && from !== "/") ? from : dashFor(u.role);
       navigate(target, { replace: true });
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Login failed");
