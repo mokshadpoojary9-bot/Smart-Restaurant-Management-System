@@ -13,6 +13,7 @@ export default function VoiceNotesPlayer() {
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [error, setError] = useState(false);
   const audioRef = useRef(null);
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function VoiceNotesPlayer() {
     setPlaying(false);
     setCurrent(0);
     setDuration(0);
+    setError(false);
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -44,10 +46,10 @@ export default function VoiceNotesPlayer() {
 
   const toggle = async () => {
     const a = audioRef.current;
-    if (!a) return;
+    if (!a || error) return;
     if (playing) { a.pause(); }
     else {
-      try { await a.play(); } catch (e) { /* ignore */ }
+      try { await a.play(); } catch (e) { setError(true); }
     }
   };
 
@@ -126,13 +128,18 @@ export default function VoiceNotesPlayer() {
               {/* Play/pause */}
               <motion.button
                 onClick={toggle}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.92 }}
+                whileHover={{ scale: error ? 1 : 1.05 }}
+                whileTap={{ scale: error ? 1 : 0.92 }}
                 data-testid={`chef-note-play-${note.id}`}
-                aria-label={playing ? "Pause" : "Play"}
-                className="shrink-0 w-16 h-16 rounded-full bg-gradient-to-br from-ember-400 to-coral-500 text-neutral-900 flex items-center justify-center shadow-lg shadow-ember-500/30"
+                aria-label={error ? "Audio unavailable" : playing ? "Pause" : "Play"}
+                disabled={error}
+                className={`shrink-0 w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${
+                  error
+                    ? "bg-muted text-muted-foreground cursor-not-allowed"
+                    : "bg-gradient-to-br from-ember-400 to-coral-500 text-neutral-900 shadow-ember-500/30"
+                }`}
               >
-                {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+                {error ? <span className="text-xs">!</span> : playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
               </motion.button>
 
               <div className="flex-1 min-w-0">
@@ -201,9 +208,14 @@ export default function VoiceNotesPlayer() {
               onTimeUpdate={onTime}
               onLoadedMetadata={onTime}
               onDurationChange={onTime}
+              onError={() => setError(true)}
               preload="metadata"
             />
-          </motion.div>
+            {error && (
+              <div className="mt-3 text-xs text-coral-500 text-center" data-testid={`chef-note-error-${note.id}`}>
+                Audio unavailable — the chef may need to re-record this note.
+              </div>
+            )}          </motion.div>
         </AnimatePresence>
 
         {/* Nav */}

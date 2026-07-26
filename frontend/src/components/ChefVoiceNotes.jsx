@@ -192,13 +192,14 @@ function MiniPlayer({ note }) {
   const [playing, setPlaying] = useState(false);
   const [cur, setCur] = useState(0);
   const [dur, setDur] = useState(0);
+  const [error, setError] = useState(false);
   const ref = useRef(null);
 
   const toggle = async () => {
     const a = ref.current;
-    if (!a) return;
+    if (!a || error) return;
     if (playing) a.pause();
-    else { try { await a.play(); } catch {} }
+    else { try { await a.play(); } catch { setError(true); } }
   };
 
   const onTime = () => {
@@ -249,8 +250,10 @@ function MiniPlayer({ note }) {
         onTimeUpdate={onTime}
         onLoadedMetadata={onTime}
         onDurationChange={onTime}
+        onError={() => setError(true)}
         preload="metadata"
       />
+      {error && <span className="text-[10px] text-coral-500 shrink-0">unavailable</span>}
     </div>
   );
 }
