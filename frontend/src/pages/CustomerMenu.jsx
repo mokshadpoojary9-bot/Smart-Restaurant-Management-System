@@ -28,6 +28,8 @@ export default function CustomerMenu() {
         const { data } = await api.get("/menu");
         setItems(data.items);
         setCats([CATS_ALL, ...data.categories]);
+      } catch (e) {
+        // silent — will retry on next poll
       } finally { setLoading(false); }
     };
     load();

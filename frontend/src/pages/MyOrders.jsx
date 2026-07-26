@@ -18,6 +18,7 @@ export default function MyOrders() {
   useEffect(() => {
     const load = async () => {
       try { const { data } = await api.get("/orders"); setOrders(data); }
+      catch (e) { /* silent retry */ }
       finally { setLoading(false); }
     };
     load();
