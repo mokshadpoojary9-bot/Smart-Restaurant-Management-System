@@ -72,6 +72,9 @@ function AppRouter() {
       <main className="min-h-[calc(100vh-4rem)]">
         <Routes>
           <Route path="/" element={<Landing />} />
+          {/* Keep /login and /register mounted in authed shell so their in-component `if (user) return <Navigate>` guards can run (and Login.jsx's post-submit navigate doesn't get clobbered by the wildcard). */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/menu" element={<CustomerMenu />} />
           <Route path="/cart" element={<ProtectedRoute roles={["customer"]}><CartPage /></ProtectedRoute>} />
           <Route path="/orders" element={<ProtectedRoute roles={["customer"]}><MyOrders /></ProtectedRoute>} />

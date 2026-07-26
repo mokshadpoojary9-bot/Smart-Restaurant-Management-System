@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 9 retest. Backend 6/6 pass. Frontend 9/10 checkpoints pass (post-login restore, chef/server landing, authed-visits-/login, authed-visits-/register, auth-gate on 9 paths incl brand-link hidden, logout). ONLY FAILURE: GUEST_LANDING flow - anon visits '/' -> gate redirects to /login with state.from={pathname:'/'} -> after guest login pathname is '/' instead of '/menu' because Login.jsx uses loc.state.from.pathname='/' as target instead of falling back to dashFor(role).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "ROLE LANDING GUEST (no from)",
+        "issue": "Anon starts at '/', anon-shell gate redirects to /login carrying state.from={pathname:'/'}. Login.jsx then treats '/' as an explicit target (loc.state?.from?.pathname || dashFor) and navigates to '/', showing the Landing page instead of the expected /menu for a customer. All other 3 login-navigation flows work correctly.",
+        "affected_selectors": ["[data-testid=login-submit]"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration7_regression.py",
+    "/app/test_reports/pytest/iter9_backend.xml"
+  ],
+  "action_items": [
+    "In Login.jsx (and Register.jsx) treat state.from.pathname === '/' as 'no from' so guest users landing via the root path get routed to dashFor(role) instead of back to Landing. Suggested change: `const from = loc.state?.from?.pathname; const target = (from && from !== '/') ? from : dashFor(u.role);`. Apply the same logic to the in-component `if (user) return <Navigate ...>` guard at top of Login.jsx and Register.jsx.",
+    "(Optional DRY) Extract dashFor + resolveTarget into /app/frontend/src/lib/roles.js and reuse in Login.jsx and Register.jsx (currently duplicated verbatim)."
+  ],
+  "critical_code_review_comments": [
+    "dashFor() duplicated in Login.jsx and Register.jsx (DRY violation).",
+    "loc.state.from.pathname of '/' is semantically 'no destination' (user just opened the app), but current code treats it as an explicit target. Add a guard.",
+    "Login.jsx uses both an in-component `if (user) <Navigate>` guard AND a post-await imperative navigate() in onSubmit. The guard is what wins now (after iteration 9 fix in App.js). Consider removing the imperative navigate() to reduce code paths, since the guard handles both cases (fresh login + already-authed URL visit)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (6/6)", "frontend": "90% (9/10) - only GUEST_LANDING from '/' fails"},
+  "test_credentials": "guest@ember.demo/guest123 (customer), chef@ember.demo/chef123 (kitchen), server@ember.demo/staff123 (staff) - all verified via API and UI login",
+  "seed_data_creation": "One TEST_ReservOwner reservation created + cancelled during backend regression.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iteration 9 authed-shell fix for /login and /register routes WORKS - authed users typing those URLs are now correctly bounced to dashFor(role), and post-login navigation works for /menu-from-anon, chef, and server flows. Remaining edge case: when anon user starts at '/', the auth-gate passes state.from={pathname:'/'} to Login, and Login uses that as an explicit target instead of falling through to dashFor. Fix is one-liner in Login.jsx (and mirror in Register.jsx): treat from==='/' as absent. After that, expect 10/10.",
+  "rca of the issue": "RCA (GUEST_LANDING): Anon visits '/'. AppRouter anon shell wildcard route <Navigate to='/login' state={{from: location}}/> passes location where pathname==='/'. In Login.jsx onSubmit (and its guard), target = loc.state?.from?.pathname || dashFor(user.role); since '/' is truthy, target='/'. navigate('/', {replace:true}) lands on Landing page for a customer, but spec expects /menu. Reproduction: incognito -> visit '/' -> submit guest@ember.demo/guest123 -> observe pathname='/'. Mitigation: treat '/' as no-from: `const from = loc.state?.from?.pathname; const target = (from && from !== '/') ? from : dashFor(user.role);` in both Login.jsx guard + onSubmit and Register.jsx guard + onSubmit."
+}
