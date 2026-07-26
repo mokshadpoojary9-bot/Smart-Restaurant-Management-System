@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import VoiceNotesPlayer from "@/components/VoiceNotesPlayer";
 
 const CATS_ALL = "All";
 
@@ -67,6 +68,9 @@ export default function CustomerMenu() {
         <p className="text-muted-foreground mt-2 max-w-xl">Tap any dish to flip the card and read allergens, prep time and story. Availability updates in real time.</p>
       </div>
 
+      {/* Chef Voice Notes */}
+      <VoiceNotesPlayer />
+
       {/* AI Recommendations */}
       {user?.role === "customer" && (
         <div className="mb-8 p-5 rounded-2xl border border-ember-400/30 bg-ember-400/5">
@@ -126,10 +130,25 @@ export default function CustomerMenu() {
           {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-[380px] rounded-2xl" />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="py-24 text-center">
-          <div className="font-display text-3xl">Nothing here yet.</div>
-          <p className="text-muted-foreground mt-2">Try clearing filters or searching a different term.</p>
-        </div>
+        <>
+          <div className="mb-4 p-4 rounded-xl border border-ember-400/30 bg-ember-400/5 text-sm">
+            <span className="font-semibold">No exact match for "{q}"</span>
+            <span className="text-muted-foreground"> — here's the rest of tonight's menu.</span>
+          </div>
+          <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {items
+              .filter((i) => (cat === CATS_ALL || i.category === cat) && (!vegOnly || i.is_veg))
+              .map((m) => (
+                <motion.div key={m.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+                  <FlipCard
+                    className="h-[380px] w-full"
+                    front={<MenuFront item={m} onAdd={onAdd} />}
+                    back={<MenuBack item={m} onAdd={onAdd} />}
+                  />
+                </motion.div>
+              ))}
+          </motion.div>
+        </>
       ) : (
         <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           <AnimatePresence>

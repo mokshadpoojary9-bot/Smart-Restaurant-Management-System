@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Clock, Flame } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import ChefVoiceNotes from "@/components/ChefVoiceNotes";
 
 const COLS = [
   { key: "placed", title: "Incoming", nextKey: "preparing", nextLabel: "Start", color: "border-ember-400" },
@@ -109,6 +110,10 @@ export default function KitchenKDS() {
             </label>
           ))}
         </div>
+      </div>
+
+      <div className="mt-6">
+        <ChefVoiceNotes menu={menu} />
       </div>
     </div>
   );

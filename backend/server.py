@@ -177,6 +177,14 @@ class StaffCreateBody(BaseModel):
     password: str
     role: str
 
+class VoiceNoteBody(BaseModel):
+    audio_base64: str
+    mime_type: str = "audio/webm"
+    message: Optional[str] = ""
+    dish_id: Optional[str] = None
+    dish_name: Optional[str] = None
+    duration_seconds: Optional[float] = 0
+
 # ---------- AUTH ROUTES ----------
 @api.post("/auth/signup")
 async def signup(body: SignupBody):
@@ -653,6 +661,46 @@ async def ai_inv_alerts(user=Depends(require_roles("admin"))):
 async def ai_weekly(user=Depends(require_roles("admin"))):
     orders = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).limit(500).to_list(500)
     return await ai_weekly_insight(orders)
+
+# ---------- CHEF VOICE NOTES ----------
+@api.get("/voice-notes")
+async def list_voice_notes(limit: int = 6):
+    """Public — customers see the latest chef voice notes."""
+    items = await db.voice_notes.find({}, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    return items
+
+@api.post("/voice-notes")
+async def create_voice_note(body: VoiceNoteBody, user=Depends(require_roles("admin", "kitchen"))):
+    # Basic size guard: base64 payload > ~1.4x raw; cap at ~1.5MB raw
+    if not body.audio_base64 or len(body.audio_base64) > 2_500_000:
+        raise HTTPException(400, "Voice note too large (max ~1.5MB / ~90 seconds).")
+    doc = {
+        "id": gen_id("vn"),
+        "audio_base64": body.audio_base64,
+        "mime_type": body.mime_type or "audio/webm",
+        "message": (body.message or "").strip()[:280],
+        "dish_id": body.dish_id,
+        "dish_name": body.dish_name,
+        "duration_seconds": float(body.duration_seconds or 0),
+        "created_by": user["user_id"],
+        "chef_name": user["name"],
+        "created_at": now_iso(),
+    }
+    await db.voice_notes.insert_one(doc)
+    doc.pop("_id", None)
+    # notify customers via a broadcast notification (target_role='customer')
+    await push_notification(
+        "customer",
+        f"New chef's note{' about ' + body.dish_name if body.dish_name else ''} — tap to listen",
+        "voice-note",
+        {"voice_note_id": doc["id"]},
+    )
+    return doc
+
+@api.delete("/voice-notes/{vid}")
+async def delete_voice_note(vid: str, user=Depends(require_roles("admin", "kitchen"))):
+    await db.voice_notes.delete_one({"id": vid})
+    return {"ok": True}
 
 # ---------- HEALTH ----------
 @api.get("/")

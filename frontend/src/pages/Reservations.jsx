@@ -33,19 +33,35 @@ export default function Reservations() {
     setBusy(true);
     try {
       const { data } = await api.post("/reservations", form);
-      toast.success(data.table_number ? `Reserved! Table #${data.table_number}` : "Reservation confirmed. We'll assign a table shortly.");
+      toast.success(data.table_number ? `Reserved! Table #${data.table_number} · ${data.date} at ${data.time}` : "Reservation confirmed. We'll assign a table shortly.");
       load();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to reserve"); }
+    } catch (e) {
+      const msg = e?.response?.data?.detail || e?.message || "Failed to reserve";
+      toast.error(String(msg));
+    }
     finally { setBusy(false); }
   };
   const joinQueue = async () => {
+    if (!form.name || !form.phone) { toast.error("Name and phone are required"); return; }
     setBusy(true);
     try {
       const { data } = await api.post("/queue", { name: form.name || user.name, phone: form.phone, party_size: form.party_size });
       toast.success(`You're #${data.position} in queue · ETA ~${data.eta_minutes}m`);
       load();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Queue join failed"); }
+    } catch (e) {
+      const msg = e?.response?.data?.detail || e?.message || "Queue join failed";
+      toast.error(String(msg));
+    }
     finally { setBusy(false); }
+  };
+
+  const cancelRes = async (r) => {
+    if (!window.confirm(`Cancel reservation on ${r.date} at ${r.time}?`)) return;
+    try {
+      await api.patch(`/reservations/${r.id}/status`, { status: "cancelled" });
+      toast.success("Reservation cancelled");
+      load();
+    } catch (e) { toast.error("Cancel failed"); }
   };
 
   return (
@@ -104,9 +120,16 @@ export default function Reservations() {
                 <div key={r.id} className="p-3 rounded-xl border border-border" data-testid={`myres-${r.id}`}>
                   <div className="flex items-center justify-between">
                     <div className="font-semibold">{r.date} · {r.time}</div>
-                    <span className="text-xs uppercase tracking-widest px-2 py-1 rounded-full bg-secondary">{r.status}</span>
+                    <span className={`text-xs uppercase tracking-widest px-2 py-1 rounded-full ${
+                      r.status === "confirmed" ? "bg-ember-400/15 text-ember-500" :
+                      r.status === "seated" ? "bg-emerald-500/15 text-emerald-500" :
+                      r.status === "cancelled" ? "bg-coral-500/15 text-coral-500" : "bg-secondary"
+                    }`}>{r.status}</span>
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">{r.party_size} guests · {r.table_number ? `Table #${r.table_number}` : "Table TBD"}</div>
+                  {r.status === "confirmed" && (
+                    <button data-testid={`res-cancel-${r.id}`} onClick={() => cancelRes(r)} className="mt-2 text-xs text-coral-500 hover:underline">Cancel</button>
+                  )}
                 </div>
               ))}
             </div>
