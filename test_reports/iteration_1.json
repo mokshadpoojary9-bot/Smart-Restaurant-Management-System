@@ -1,0 +1,40 @@
+{
+  "summary": "Backend testing for Ember & Oak Smart Restaurant API. Executed 23 pytest tests covering health, seed data (menu/tables), auth (signup/login/me/owner-auto-promote), RBAC (admin/customer/staff/kitchen), Menu CRUD, Order flow with bill math (tax 5% + service 5%), inventory auto-decrement, order status transitions with customer notifications, reservations, queue, all 5 AI endpoints (recommendations, weekly-insight, forecast, inventory-alerts, chat SSE stream), and analytics summary. All 23 tests passed. Two minor test-script bugs were self-fixed (EmailStr rejects .test TLD; backend lowercases emails).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/auth/signup, /api/auth/login", "issue": "Emails are silently lowercased server-side. Not a bug, but callers using exact-match comparison must lowercase. Documented in tests."},
+      {"endpoint": "POST /api/orders inventory decrement", "issue": "Uses substring match (inv.name.lower() in item.name.lower()) which is fragile: an inventory row named 'Corn' would decrement for ANY item containing 'corn'. Consider explicit item->inventory mapping."},
+      {"endpoint": "POST /api/reservations", "issue": "date/time are free-form strings; no validation of format or future date."},
+      {"endpoint": "GET /api/ai/chat (SSE)", "issue": "Errors in the stream are emitted as `data: [ERROR] ...` rather than an HTTP error, so clients cannot distinguish success/failure by status code. Acceptable for streaming but worth noting."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_restaurant_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Consider adding an explicit menu_item -> inventory_item mapping instead of substring name match in the inventory decrement logic in create_order().",
+    "Optionally document that /api/auth/* lowercases emails."
+  ],
+  "critical_code_review_comments": [
+    "server.py is ~690 lines and mixes auth, menu, orders, inventory, staff, reservations, queue, notifications, analytics and AI wiring - consider splitting into routers (routes/auth.py, routes/orders.py, ...) once >700 lines.",
+    "Inventory decrement uses fragile substring matching on item names (line ~341).",
+    "OAuth session cookie is set with samesite='none'; secure=True which is correct for cross-site preview URLs but will fail on plain-http local dev.",
+    "push_notification uses mutable default None then `or {}` - fine, but consider `meta: Optional[dict] = None` type hint (already correct usage).",
+    "No pagination on /orders, /reservations, /notifications - limit(500/50) hardcoded. Acceptable for MVP.",
+    "PATCH /api/orders/{id}/status accepts a raw dict; add a Pydantic model with a Literal[...] to auto-validate."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_restaurant_api.py (new)",
+    "/app/test_reports/pytest/pytest_results.xml (generated)"
+  ],
+  "success_rate": {"backend": "100% (23/23)", "frontend": "not tested"},
+  "test_credentials": "Owner: radharamanmdp@gmail.com/owner123 (auto-promoted admin). Seeded: chef@ember.demo/chef123, server@ember.demo/staff123, guest@ember.demo/guest123.",
+  "seed_data_creation": "Created a handful of TEST_-prefixed customers (via signup) and one TEST_Special menu item (created+deleted in menu CRUD test). No cleanup fixture for signup users since backend has no delete-user-by-email endpoint; they are harmless and prefixed for identification.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All backend endpoints pass. Test file /app/backend/tests/test_restaurant_api.py is idempotent (uses unique uuid emails; owner login tries password owner123 then falls back to signup). Watch out for two gotchas: (1) EmailStr rejects reserved TLDs like .test/.example - use .com; (2) backend lowercases emails on signup/login, compare with .lower(). Frontend not yet tested in this iteration.",
+  "rca of the issue": "N/A - no product bugs discovered."
+}
