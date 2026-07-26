@@ -1,0 +1,65 @@
+{
+  "summary": "Iteration 8 retest of post-login restore + role-based landing. Backend 6/6 pass. Frontend: 6/10 checkpoints FAIL - the iteration-8 fix is incomplete. Post-login always lands on '/' regardless of role or intended target. Same bug also affects authed users typing /login or /register.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "POST-LOGIN RESTORE",
+        "issue": "Anon /menu -> /login -> submit guest -> lands on '/' instead of '/menu'. loc.state.from is lost because Login unmounts before its navigate() can fire.",
+        "affected_selectors": ["[data-testid=login-submit]"]
+      },
+      {
+        "flow": "ROLE-BASED LANDING (chef)",
+        "issue": "Chef login lands on '/' instead of '/kitchen'.",
+        "affected_selectors": ["[data-testid=login-submit]"]
+      },
+      {
+        "flow": "ROLE-BASED LANDING (server)",
+        "issue": "Server login lands on '/' instead of '/staff'.",
+        "affected_selectors": ["[data-testid=login-submit]"]
+      },
+      {
+        "flow": "ROLE-BASED LANDING (guest)",
+        "issue": "Guest login from '/' lands on '/' instead of '/menu' (dashFor fallback ignored).",
+        "affected_selectors": ["[data-testid=login-submit]"]
+      },
+      {
+        "flow": "AUTHED USER VISITS /login",
+        "issue": "Authed guest typing /login is redirected to '/' instead of dashFor(role)=/menu. Login.jsx's `if (user) return <Navigate to=dashFor... />` guard NEVER runs because the authed shell has no <Route path=\"/login\">; the wildcard `<Route path=\"*\" element={<Navigate to=\"/\" replace/>} />` swallows it first.",
+        "affected_selectors": []
+      },
+      {
+        "flow": "AUTHED USER VISITS /register",
+        "issue": "Same root cause as above - authed shell has no /register route, wildcard sends them to '/'.",
+        "affected_selectors": []
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration7_regression.py",
+    "/app/test_reports/pytest/iter8_backend.xml"
+  ],
+  "action_items": [
+    "In /app/frontend/src/App.js authenticated branch, ADD BACK routes for /login and /register but point them at the Login/Register components (NOT a hard Navigate). This lets Login.jsx's `if (user) return <Navigate to={loc.state?.from?.pathname || dashFor(user.role)} replace/>` guard actually execute on the first authed render. Example: `<Route path=\"/login\" element={<Login />} /> <Route path=\"/register\" element={<Register />} />` placed BEFORE the wildcard route.",
+    "This single change simultaneously fixes: (a) post-login restore (Login stays mounted long enough for its guard/navigate to run, or its <Navigate> guard runs on the authed-shell re-render carrying loc.state.from), (b) role-based landing for chef/server/guest, and (c) authed users typing /login or /register.",
+    "Alternative equivalent fix: switch Login.jsx from a post-await `navigate()` to a `useEffect(() => { if (user) navigate(target, {replace:true}) }, [user])`, AND ensure /login route is defined in authed shell so component doesn't unmount."
+  ],
+  "critical_code_review_comments": [
+    "App.js authed branch relies on wildcard `<Route path=\"*\" element={<Navigate to=\"/\" replace/>} />` which is racing with Login.jsx's imperative navigate(). Removing the /login route entirely from the authed shell did NOT fix the race - the wildcard still catches /login on the first authed re-render and unmounts Login before it can navigate.",
+    "Login.jsx uses `navigate()` after `await login()`. Between the await resolving and navigate firing, React re-renders with the new `user`, mounting the authed shell whose Routes match wildcard first. Order of effects means the wildcard's <Navigate to='/'> wins.",
+    "dashFor() is duplicated verbatim in Login.jsx and Register.jsx (DRY violation). Extract into /app/frontend/src/lib/roles.js."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (6/6)", "frontend": "40% (4/10 - only gate regression + logout pass; all 6 auth-navigation flows fail)"},
+  "test_credentials": "guest@ember.demo/guest123, chef@ember.demo/chef123, server@ember.demo/staff123 (all verified working via backend login API)",
+  "seed_data_creation": "None. One TEST_ReservOwner reservation created and cancelled during backend regression.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 8's fix is incomplete. The removal of `<Route path=\"/login\" element={<Navigate to=\"/\"/>} />` from authed shell moved the bug but did not resolve it - the wildcard route `<Route path=\"*\" element={<Navigate to=\"/\" replace/>} />` now catches /login on the first authed render, unmounting Login.jsx before its post-await navigate() can execute. Same for Register. Fix: add `<Route path=\"/login\" element={<Login/>}/>` and `<Route path=\"/register\" element={<Register/>}/>` in the authed shell BEFORE the wildcard. When retesting, use fresh browser contexts per flow (session persists otherwise) and note that logout-btn lives inside a DropdownMenu triggered by clicking the user avatar (button:has-text('Guest')/'Admin' etc.).",
+  "rca of the issue": "RCA: In App.js when user becomes authenticated inside Login.jsx onSubmit, React re-renders AppRouter -> switches from anon shell to authed shell BEFORE Login.jsx's imperative navigate(target,{replace}) executes. The authed shell has no route for /login, so the wildcard `<Route path=\"*\" element={<Navigate to=\"/\" replace/>} />` matches immediately, unmounting Login and forcing pathname=/. Login.jsx's follow-on navigate() call is a no-op on an unmounted component. Reproduction: (1) open incognito, (2) visit /menu (or /), (3) submit any demo credentials, (4) observe pathname is '/'. Mitigation: register /login and /register routes in the authed shell to render the actual Login/Register components; their `if (user) return <Navigate to={loc.state?.from?.pathname || dashFor(user.role)} replace/>` guards will then run on the first authed render and pick the correct target (with loc.state.from preserved from the anon-shell auth-gate). Also consider replacing Login's imperative post-await navigate() with a `useEffect(() => { if (user) navigate(...) }, [user])` for defense in depth."
+}

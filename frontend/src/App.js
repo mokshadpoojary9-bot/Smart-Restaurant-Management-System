@@ -72,9 +72,6 @@ function AppRouter() {
       <main className="min-h-[calc(100vh-4rem)]">
         <Routes>
           <Route path="/" element={<Landing />} />
-          {/* If an authed user hits /login or /register, just send them to home */}
-          <Route path="/login" element={<Navigate to="/" replace />} />
-          <Route path="/register" element={<Navigate to="/" replace />} />
           <Route path="/menu" element={<CustomerMenu />} />
           <Route path="/cart" element={<ProtectedRoute roles={["customer"]}><CartPage /></ProtectedRoute>} />
           <Route path="/orders" element={<ProtectedRoute roles={["customer"]}><MyOrders /></ProtectedRoute>} />

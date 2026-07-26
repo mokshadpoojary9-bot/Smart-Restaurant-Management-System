@@ -1,17 +1,27 @@
 import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
 import { Loader2, LogIn, Chrome } from "lucide-react";
 import { motion } from "framer-motion";
 
+function dashFor(role) {
+  return role === "admin" ? "/admin" : role === "staff" ? "/staff" : role === "kitchen" ? "/kitchen" : "/menu";
+}
+
 export default function Login() {
-  const { login } = useAuth();
+  const { user, login } = useAuth();
   const navigate = useNavigate();
   const loc = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Already signed in? Bounce to the intended destination.
+  if (user) {
+    const target = loc.state?.from?.pathname || dashFor(user.role);
+    return <Navigate to={target} replace />;
+  }
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -106,8 +116,4 @@ export default function Login() {
       </div>
     </div>
   );
-}
-
-function dashFor(role) {
-  return role === "admin" ? "/admin" : role === "staff" ? "/staff" : role === "kitchen" ? "/kitchen" : "/menu";
 }

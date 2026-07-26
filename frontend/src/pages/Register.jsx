@@ -1,16 +1,26 @@
 import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
 import { Loader2, UserPlus, Chrome } from "lucide-react";
 import { motion } from "framer-motion";
 
+function dashFor(role) {
+  return role === "admin" ? "/admin" : role === "staff" ? "/staff" : role === "kitchen" ? "/kitchen" : "/menu";
+}
+
 export default function Register() {
-  const { signup } = useAuth();
+  const { user, signup } = useAuth();
   const navigate = useNavigate();
   const loc = useLocation();
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [busy, setBusy] = useState(false);
+
+  // Already signed in? Bounce to intended destination.
+  if (user) {
+    const target = loc.state?.from?.pathname || dashFor(user.role);
+    return <Navigate to={target} replace />;
+  }
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -18,7 +28,7 @@ export default function Register() {
     try {
       const u = await signup(form.name, form.email, form.password);
       toast.success(`Welcome, ${u.name}!`);
-      const target = loc.state?.from?.pathname || (u.role === "admin" ? "/admin" : "/menu");
+      const target = loc.state?.from?.pathname || dashFor(u.role);
       navigate(target, { replace: true });
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Signup failed");
