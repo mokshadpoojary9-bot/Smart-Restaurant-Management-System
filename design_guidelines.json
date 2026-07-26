@@ -1,0 +1,148 @@
+{
+  "theme": "Premium SaaS + Light 3D - Luxury Omakase meets Command Center",
+  "concept": "A dual-identity platform: elegant, immersive, and sensory for the customer (like a high-end menu), and ruthlessly efficient, data-dense, and tactical for the staff/admin. Rejects standard SaaS blues in favor of warm, appetizing amber/coral on an espresso-dark base.",
+  "typography": {
+    "headings": {
+      "font": "Cormorant Garamond, serif",
+      "weights": ["400", "600", "700"],
+      "usage": "H1 to H3. Use tracking-tight for H1/H2. Projects heritage and fine dining elegance.",
+      "scales": {
+        "h1": "text-5xl sm:text-6xl tracking-tight leading-none",
+        "h2": "text-4xl sm:text-5xl tracking-tight",
+        "h3": "text-2xl sm:text-3xl"
+      }
+    },
+    "body": {
+      "font": "Outfit, sans-serif",
+      "weights": ["300", "400", "500", "600"],
+      "usage": "All functional UI, dashboards, body text, forms. Clean, modern geometry.",
+      "scales": {
+        "body": "text-base leading-relaxed",
+        "small": "text-sm",
+        "label": "text-xs tracking-[0.2em] uppercase font-semibold"
+      }
+    }
+  },
+  "colors": {
+    "archetype": "ORGANIC & EARTHY mixed with LUXURY",
+    "dark_mode": {
+      "background": "#0C0A09",
+      "surface": "#1C1917",
+      "surface_elevated": "#292524",
+      "primary": "#F59E0B",
+      "primary_hover": "#D97706",
+      "secondary": "#F43F5E",
+      "text_main": "#FAFAF9",
+      "text_muted": "#A8A29E",
+      "border": "#292524",
+      "glass": "bg-black/60 backdrop-blur-xl border-white/10"
+    },
+    "light_mode": {
+      "background": "#FAFAF9",
+      "surface": "#FFFFFF",
+      "surface_elevated": "#F5F5F4",
+      "primary": "#EA580C",
+      "primary_hover": "#C2410C",
+      "secondary": "#E11D48",
+      "text_main": "#1C1917",
+      "text_muted": "#57534E",
+      "border": "#E7E5E4",
+      "glass": "bg-white/70 backdrop-blur-xl border-black/5"
+    },
+    "status": {
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "danger": "#EF4444",
+      "info": "#3B82F6"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "Used for sticky headers, floating navs, and spring modals. Must have backdrop-blur-xl, saturate-150, and a delicate 1px inner border. NEVER use purely transparent backgrounds.",
+    "elevation": "Layered via deep ambient shadow + crisp 1px border. shadow-[0_8px_32px_rgba(0,0,0,0.12)] for cards.",
+    "radius": "Consistent rounded radius system. rounded-2xl for main cards, rounded-xl for inner elements, rounded-full for pills/buttons.",
+    "empty_states": "Custom illustrated or beautifully composed typographic empty states. No default generic texts."
+  },
+  "layouts": {
+    "landing": "Bento Grid (Tetris Mode) mixed with immersive asymmetric scroll sections. Massive negative space (p-12, p-24).",
+    "customer_menu": "Responsive masonry or dense grid for flashcards. Mobile-first bottom sheet for cart.",
+    "admin_dashboard": "High Density Grid. grid-cols-1 md:grid-cols-3 lg:grid-cols-4. gap-6. Flat backgrounds with 1px border.",
+    "kds_system": "Kanban style horizontal scrollable board (Incoming, Preparing, Ready, Served). Full viewport height."
+  },
+  "motion": {
+    "shared_variants": {
+      "flip_front": "{ initial: { rotateY: 0 }, hover: { rotateY: 180 }, transition: { type: 'spring', stiffness: 260, damping: 20 } }",
+      "flip_back": "{ initial: { rotateY: -180 }, hover: { rotateY: 0 }, transition: { type: 'spring', stiffness: 260, damping: 20 } }",
+      "lift": "{ rest: { y: 0, scale: 1 }, hover: { y: -8, scale: 1.02, boxShadow: '0 20px 40px -10px rgba(0,0,0,0.2)' } }",
+      "fade_in_up": "{ hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } } }"
+    },
+    "flashcard_pattern": "Requires wrapper with `perspective: 1000px`. Inner motion.div with `transform-style: preserve-3d`. Front/Back faces with `backface-visibility: hidden`.",
+    "stepper": "Animated width expansion for progress bars with count-up text for percentages.",
+    "modals": "Spring-in modals (scale from 0.95, opacity 0 -> scale 1, opacity 1)."
+  },
+  "components": {
+    "flashcards": "Universal primitive for this app. Menu items flip to reveal allergens/order button. KPI cards flip to reveal chart trends. Table maps flip to show order details.",
+    "forms": "Use Shadcn customized for the theme. Inputs get a warm focus ring (ring-primary/50).",
+    "stepper": "Used for Order Flow (Placed -> Preparing -> Ready -> Served). Animated line connecting active dot states.",
+    "kds_column": "Kanban lane with auto-scrolling capabilities and drag/drop or tap-to-move interactions.",
+    "chatbot": "Floating glass widget with staggered chat bubbles and Framer Motion layout animations."
+  },
+  "accessibility": {
+    "contrast": "AA-compliant. Primary text >= 4.5:1 against backgrounds. Ensure amber/coral text variants meet 3:1 on dark backgrounds.",
+    "reduced_motion": "Wrap Framer Motion configs with `useReducedMotion` hook. If true, disable flips/springs and rely on opacity fades.",
+    "testing": "All interactive elements MUST include `data-testid` (e.g., `data-testid=\"menu-item-flip-btn\"`)."
+  },
+  "3d_libraries": {
+    "react_three_fiber": {
+      "usage": "Landing page hero section.",
+      "implementation": "Render a high-end 3D rotating dish or plate. Use `<Canvas>`, `<ambientLight>`, `<directionalLight>`, and `<OrbitControls enableZoom={false} autoRotate />`. Ensure scene has warm studio lighting (`drei` `<Environment preset=\"studio\" />`) to prevent muddy renders. Add floating interactive particles around the dish.",
+      "performance": "Wrap in `<Suspense fallback={<HeroLoader />}>`."
+    }
+  },
+  "media": {
+    "image_urls": [
+      {
+        "url": "https://images.pexels.com/photos/24186303/pexels-photo-24186303.jpeg",
+        "category": "menu_item",
+        "description": "High-end yellow tapas on black plate"
+      },
+      {
+        "url": "https://images.pexels.com/photos/24245839/pexels-photo-24245839.jpeg",
+        "category": "menu_item",
+        "description": "Gourmet greens on dark plate"
+      },
+      {
+        "url": "https://images.pexels.com/photos/29962487/pexels-photo-29962487.jpeg",
+        "category": "hero_background",
+        "description": "Warm lit elegant restaurant scene"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1577219491135-ce391730fb2c",
+        "category": "staff_avatar",
+        "description": "Chef preparing food"
+      },
+      {
+        "url": "https://images.pexels.com/photos/10633476/pexels-photo-10633476.jpeg",
+        "category": "auth_background",
+        "description": "Luxurious restaurant interior"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Prioritize optical alignment and negative space. Use generous paddings (p-6, p-8, p-12).",
+    "Never use purely transparent backgrounds on floating elements or navigation bars.",
+    "Implement the flashcard flip using `framer-motion` for Menu, Staff Table map, and Admin KPI cards. This is a core identity feature.",
+    "Build the 3D rotating hero using `react-three-fiber` and `@react-three/drei`. Supply adequate lighting so it doesn't look flat.",
+    "Ensure the KDS dashboard fits horizontally and prioritizes real-time visibility and status updates.",
+    "All headings must use Cormorant Garamond, all body text must use Outfit. Fetch via Google Fonts or standard imports.",
+    "Do NOT use placeholder images. Use the provided high-quality image URLs from the media section."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "You MUST NOT apply universal transitions (e.g., transition: all). Specifically target opacity and transform.",
+    "You MUST NOT center align the app container (.App { text-align: center; }). Keep natural left-aligned reading flow.",
+    "Always use modern interactive button styles with hover/active states.",
+    "NEVER use emojis as icons. Use Lucide icons or Phosphor icons exclusively.",
+    "Add `data-testid` to all interactive components for testability.",
+    "Ensure sonner is used for all toasts and notifications.",
+    "All components must be .js/.jsx, strictly adhering to standard React structure."
+  ]
+}
