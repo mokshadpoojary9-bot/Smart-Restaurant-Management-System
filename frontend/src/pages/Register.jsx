@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
 import { Loader2, UserPlus, Chrome } from "lucide-react";
@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 export default function Register() {
   const { signup } = useAuth();
   const navigate = useNavigate();
+  const loc = useLocation();
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [busy, setBusy] = useState(false);
 
@@ -17,7 +18,8 @@ export default function Register() {
     try {
       const u = await signup(form.name, form.email, form.password);
       toast.success(`Welcome, ${u.name}!`);
-      navigate(u.role === "admin" ? "/admin" : "/menu", { replace: true });
+      const target = loc.state?.from?.pathname || (u.role === "admin" ? "/admin" : "/menu");
+      navigate(target, { replace: true });
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Signup failed");
     } finally { setBusy(false); }

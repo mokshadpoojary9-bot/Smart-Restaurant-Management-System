@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 7 auth-gate testing. Backend regressions (menu 19 items pure-veg, search paneer/italian, reservation cancel by owner, unauth /auth/me, login wrong pw) — 6/6 pass. Frontend auth-gate: anon->/login works, deep-link redirect works for all 8 protected paths, authed navbar renders, authed user hitting /login redirects to /, logout clears session & hides navbar. HOWEVER: post-login destination restoration (state.from) AND role-based landing (dashFor) are BOTH broken — every login lands the user on '/' (Landing) regardless of role or original 'from' path.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Post-login destination restore",
+        "issue": "Anon visits /menu -> redirected to /login with state.from=/menu. After successful email/password login, user lands on '/' instead of '/menu'. Expected: window.location.pathname === '/menu'.",
+        "affected_selectors": ["[data-testid=login-submit]"]
+      },
+      {
+        "flow": "Role-based landing after login (dashFor)",
+        "issue": "Login as chef@ember.demo lands on '/' (expected /kitchen). Login as server@ember.demo lands on '/' (expected /staff). Login as guest@ember.demo lands on '/' (expected /menu). dashFor() output is being overridden.",
+        "affected_selectors": ["[data-testid=login-submit]"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration7_regression.py",
+    "/app/test_reports/pytest/iter7.xml"
+  ],
+  "action_items": [
+    "Fix race in App.js AppRouter: the authed shell defines `<Route path=\"/login\" element={<Navigate to=\"/\" replace />} />`. After Login.jsx calls `await login()` (which setUser -> triggers rerender to authed shell BEFORE the synchronous `navigate(target)` fully takes effect), this Navigate wrapper redirects to '/', clobbering both role-based dashFor() AND the state.from restore. Two possible fixes: (a) In Login.jsx compute `target` BEFORE calling login() and use `navigate(target, {replace:true})` inside a setTimeout(0) after login, or better (b) remove the `<Route path=\"/login\" element={<Navigate to=\"/\" replace />} />` from the authed branch and instead handle authed-visits-to-/login inside the Login component itself via `if (user) return <Navigate to=\"/\" replace />` — this way Login.jsx's own navigate(target) has priority on the first authed render. Or (c) in AppRouter, when authed and path is /login, read location.state?.from and redirect there instead of always '/'.",
+    "Apply same fix to Register.jsx flow (same pattern)."
+  ],
+  "critical_code_review_comments": [
+    "AppRouter.js line 76-77: hardcoded Navigate to '/' overrides both role-based routing and state.from restore — the very features the iteration was supposed to add.",
+    "AuthContext.logout() calls window.location.href='/' — with the new auth gate, hard reload will then land on /login (works), but a soft navigate would be cleaner and preserve React state.",
+    "GET /api/menu returns {items, categories} but earlier regression tests assumed a flat list — response shape inconsistency worth documenting."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration7_regression.py"
+  ],
+  "success_rate": {"backend": "100% (6/6)", "frontend": "70% (7/10 auth-gate checks pass; post-login restore + 3 role-landing cases fail)"},
+  "test_credentials": "guest@ember.demo/guest123, chef@ember.demo/chef123, server@ember.demo/staff123",
+  "seed_data_creation": "Created & cancelled one TEST_ReservOwner reservation on 2026-02-14 19:00 during backend test.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "AppRouter's authed-branch `<Route path=/login element={<Navigate to=/ replace/>}>` is racing with Login.jsx's own navigate(target). After main agent fixes, re-verify: (a) login as chef -> /kitchen, server -> /staff, guest (no from) -> /menu; (b) anon /menu -> login -> /menu; (c) anon /admin -> login -> /admin (only if admin) else / ; (d) authed user typing /login in URL -> / (already works). Regression cmd: pytest /app/backend/tests/test_iteration7_regression.py -v.",
+  "rca_of_the_issue": "Bug: post-login destination is always '/'. Reproduce: (1) log out; (2) visit /menu; (3) redirected to /login; (4) submit guest@ember.demo/guest123; (5) observe path=/ (Landing). RCA: In App.js AppRouter, the authed branch contains `<Route path=\"/login\" element={<Navigate to=\"/\" replace />} />`. Order of events on submit: Login.onSubmit awaits login(); login() does setUser(data.user); this triggers AppRouter rerender; user is now truthy so authed shell renders; current URL is still /login; Navigate component runs its useEffect and calls history.replace('/'). Only afterwards Login.jsx's synchronous `navigate(target, {replace:true})` runs — but it's replacing '/' with '/menu' or '/kitchen' etc., which SHOULD work. In practice React-Router batches the Navigate's replace after Login's navigate, so the Navigate wins. Net effect: user always lands on '/'. Same for role-based paths. Mitigation options listed in action_items; recommended: remove the authed /login route redirect from AppRouter and let Login.jsx itself early-return `<Navigate to=\"/\">` when `user` is present — this way Login.jsx's navigate(target) is the only writer on the first authed render."
+}
