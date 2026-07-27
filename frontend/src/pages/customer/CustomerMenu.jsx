@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
-import VoiceNotesPlayer from "@/components/VoiceNotesPlayer";
 import VegBadge, { PureVegBanner } from "@/components/VegBadge";
 
 const CATS_ALL = "All";
@@ -91,9 +90,6 @@ export default function CustomerMenu() {
       </div>
 
       <PureVegBanner className="mb-6" />
-
-      {/* Chef Voice Notes */}
-      <VoiceNotesPlayer />
 
       {/* AI Recommendations */}
       {user?.role === "customer" && (

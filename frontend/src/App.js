@@ -8,16 +8,16 @@ import Navbar from "@/components/Navbar";
 import ChatWidget from "@/components/ChatWidget";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
-import Landing from "@/pages/Landing";
-import Login from "@/pages/Login";
-import Register from "@/pages/Register";
-import AuthCallback from "@/pages/AuthCallback";
-import CustomerMenu from "@/pages/CustomerMenu";
-import CartPage from "@/pages/CartPage";
-import OrderTrack from "@/pages/OrderTrack";
-import MyOrders from "@/pages/MyOrders";
-import Reservations from "@/pages/Reservations";
-import BillView from "@/pages/BillView";
+import Landing from "@/pages/customer/Landing";
+import Login from "@/pages/auth/Login";
+import Register from "@/pages/auth/Register";
+import AuthCallback from "@/pages/auth/AuthCallback";
+import CustomerMenu from "@/pages/customer/CustomerMenu";
+import CartPage from "@/pages/customer/CartPage";
+import OrderTrack from "@/pages/customer/OrderTrack";
+import MyOrders from "@/pages/customer/MyOrders";
+import Reservations from "@/pages/customer/Reservations";
+import BillView from "@/pages/customer/BillView";
 import AdminLayout from "@/pages/admin/AdminLayout";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminOrders from "@/pages/admin/AdminOrders";
@@ -26,8 +26,8 @@ import AdminMenu from "@/pages/admin/AdminMenu";
 import AdminInventory from "@/pages/admin/AdminInventory";
 import AdminStaff from "@/pages/admin/AdminStaff";
 import AdminAnalytics from "@/pages/admin/AdminAnalytics";
-import StaffView from "@/pages/StaffView";
-import KitchenKDS from "@/pages/KitchenKDS";
+import StaffView from "@/pages/staff/StaffView";
+import KitchenKDS from "@/pages/kitchen/KitchenKDS";
 import "@/App.css";
 
 function AppRouter() {

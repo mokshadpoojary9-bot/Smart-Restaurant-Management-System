@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
-import { Loader2, LogIn, Chrome, Leaf, ArrowRight, Sparkles } from "lucide-react";
+import { Loader2, LogIn, Chrome, Leaf, ArrowRight, Sparkles, Utensils, CalendarClock, Bot, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 function dashFor(role) {
