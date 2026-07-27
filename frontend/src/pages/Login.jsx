@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
-import { Loader2, LogIn, Chrome, Leaf, ArrowRight, Sparkles, Flame, Utensils, CalendarClock, Bot, ShieldCheck, Activity } from "lucide-react";
+import { Loader2, LogIn, Chrome, Leaf, ArrowRight, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 function dashFor(role) {
@@ -95,9 +95,6 @@ export default function Login() {
             </span>
           </motion.div>
 
-          {/* Professional feature flashcards */}
-          <FeatureFlashcards />
-
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -132,7 +129,7 @@ export default function Login() {
             transition={{ delay: 0.6 }}
             className="grid grid-cols-3 gap-4 max-w-md"
           >
-            <Stat n="37+" l="Veg dishes" />
+            <Stat n="30+" l="Veg dishes" />
             <Stat n="4" l="Live dashboards" />
             <Stat n="AI" l="Gemini insights" />
           </motion.div>
@@ -230,81 +227,6 @@ function Stat({ n, l }) {
       <div className="font-display text-3xl text-ember-300">{n}</div>
       <div className="text-[10px] uppercase tracking-[0.2em] text-white/50 mt-1">{l}</div>
     </div>
-  );
-}
-
-const FEATURES = [
-  {
-    icon: Utensils,
-    title: "Live Menu Board",
-    body: "37 pure-veg dishes with real-time availability, allergens & prep times — updated the moment the chef flips a switch.",
-    kbd: "Diner · Server",
-    tint: "from-ember-400/25 to-amber-500/10",
-  },
-  {
-    icon: CalendarClock,
-    title: "Smart Reservations",
-    body: "Auto-matches parties to the right table, tracks the live queue and messages guests when their seat is ready.",
-    kbd: "Host · Staff",
-    tint: "from-coral-500/25 to-rose-500/10",
-  },
-  {
-    icon: Bot,
-    title: "AI Operations",
-    body: "Gemini-powered demand forecasts, inventory risk alerts and a plain-English weekly digest — served to the owner.",
-    kbd: "Owner",
-    tint: "from-violet-500/25 to-indigo-500/10",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Kitchen Display + Bills",
-    body: "Chef KDS with order timers, one-tap status flow and instant itemised bills with tax & service — no paperwork.",
-    kbd: "Kitchen · Cashier",
-    tint: "from-emerald-500/25 to-teal-500/10",
-  },
-];
-
-function FeatureFlashcards() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.25, duration: 0.55 }}
-      className="grid grid-cols-2 gap-3 max-w-lg my-6"
-      data-testid="login-feature-flashcards"
-    >
-      {FEATURES.map((f, i) => (
-        <FlashcardTile key={f.title} f={f} i={i} />
-      ))}
-    </motion.div>
-  );
-}
-
-function FlashcardTile({ f, i }) {
-  const Icon = f.icon;
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.35 + i * 0.08, type: "spring", stiffness: 220, damping: 22 }}
-      whileHover={{ y: -3, scale: 1.015 }}
-      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] backdrop-blur-xl p-4 shadow-lg shadow-black/20"
-    >
-      <div className={`pointer-events-none absolute -top-8 -right-8 w-28 h-28 rounded-full bg-gradient-to-br ${f.tint} blur-2xl opacity-70 group-hover:opacity-100 transition-opacity`} />
-      <div className="relative flex items-center justify-between mb-3">
-        <div className="w-9 h-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center">
-          <Icon className="w-4 h-4 text-ember-300" strokeWidth={1.8} />
-        </div>
-        <span className="text-[9px] uppercase tracking-[0.18em] text-white/40 border border-white/10 rounded-full px-2 py-0.5">
-          {f.kbd}
-        </span>
-      </div>
-      <div className="relative">
-        <div className="font-display text-lg leading-tight text-white mb-1">{f.title}</div>
-        <p className="text-[12px] leading-relaxed text-white/60 line-clamp-3">{f.body}</p>
-      </div>
-      <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-    </motion.div>
   );
 }
 
