@@ -1,46 +1,44 @@
-# PRD — Ember & Oak Smart Restaurant OS
+# Ember & Oak — Smart Restaurant OS (PRD)
 
-## Original Problem Statement
-VibeAthon 6.0 Smart Restaurant Management System — a production-ready in-restaurant operations platform (NOT delivery). Solves 7 problems: live availability, digital menu, smart reservations+queue, real-time order flow, auto billing+inventory, unified staff coordination, AI insights & forecasting.
+## Original problem statement
+Build a production-ready in-restaurant Smart Restaurant Management System (no delivery). Core: Live Item Availability, Digital Menu, Smart Reservations, Queue Management, Order/Billing workflows, Staff/Admin Dashboards, AI-powered insights (Gemini). Interactive 3D + flashcard UI. **100% pure vegetarian**. **Strict auth-first gate.**
 
-## Architecture (adapted from spec)
-- **Frontend**: React 19 (CRA) + Tailwind + shadcn/ui + Framer Motion + @react-three/fiber + react-router
-- **Backend**: FastAPI + Motor (async MongoDB)
-- **DB**: MongoDB
-- **Auth**: Emergent Google OAuth (session_token cookie) + JWT email/password — RBAC (customer, staff, kitchen, admin)
-- **AI**: Gemini 3 Flash via Emergent Universal LLM Key (`emergentintegrations` lib) — streaming chat via SSE
-- **Realtime**: Polling every 3-5s (Supabase Realtime substitute)
+## Tech stack (adapted from problem statement)
+- Frontend: React (CRA), Tailwind, shadcn/ui, Framer Motion, react-three-fiber
+- Backend: FastAPI, MongoDB (Motor)
+- Auth: Custom JWT + Emergent-managed Google OAuth
+- AI: Gemini 3 Flash via Emergent Universal LLM Key
 
-## User Personas
-1. **Diner (customer)** — browses menu, books/queues, orders, tracks, pays
-2. **Server / Staff** — manages tables, reservations, order queue
-3. **Kitchen (KDS)** — receives tickets, marks preparing/ready/served, toggles availability (86 list)
-4. **Restaurant Admin / Owner (radharamanmdp@gmail.com)** — full analytics, AI insights, inventory, staff mgmt
+## Roles
+Admin/Owner · Kitchen · Server (Staff) · Diner (Customer)
 
-## Implemented (v1 — 2026-02)
-- Landing with 3D rotating plate (react-three-fiber v9), 7-problem grid, roles section, CTA
-- Auth: email/password + Emergent Google OAuth; owner email auto-promoted to admin
-- Customer: flip-card menu (front image/price/veg badge/rating; back allergens/prep/story/add), search+category+veg filter, AI recommendations panel (Gemini), cart, place order → live tracking (stepper) → printable bill
-- Reservations + walk-in queue with auto table assignment and live ETA
-- Staff board: active orders + advance status, table map (flip cards), reservations, queue seating
-- Kitchen KDS: 4-column Kanban (Incoming/Preparing/Ready/Served) with urgency flag by prep time, 86-list availability toggles
-- Admin dashboard: KPI flip cards, revenue chart, hourly chart, AI weekly insight, AI forecast, AI inventory alerts
-- Admin CRUD: menu (add/edit/delete/toggle), inventory (restock/threshold/low-stock alerts), staff & customers CRM
-- Analytics page: daily revenue area chart, top items horizontal bar
-- Notifications: role-scoped bell with polling, low-stock and order-status pushes
-- AI: streaming chat widget (Gemini SSE), recommendations, weekly insight, demand forecast, inventory prediction
-- Auto-decrement inventory on order placement + auto-generated bill on every order
-- Seed: 14 dishes across 5 categories, 12 tables, 11 inventory items, 3 demo staff accounts
+## What's implemented
+- Auth-first gate (`/` → `/login`), Google OAuth + JWT, RBAC
+- 100% pure-veg digital menu (37 items) with 3D flip-cards, category filter, live availability
+- Cart, orders, itemised bills (tax + service)
+- Smart reservations + waiting queue (auto-table match, cancel flow)
+- Admin, Kitchen KDS, Staff dashboards + Diner order tracking
+- Backend AI service (`ai_service.py`) — chat/recommendations/forecast/inventory-alerts/weekly-insight
+- Login page redesign with animated blobs, rotating hero word, glass card, **professional feature flashcards (Feb 2026)**
 
-## Deferred / Backlog (P1)
-- QR code table menu
-- Loyalty/rewards points
-- Coupons/promo codes
-- Customer reviews & ratings
-- Voice search / voice ordering
-- Multi-language menu
-- PWA + offline support
+## Backlog / Roadmap
+### P0
+- **Platinum AI Tier UI wiring** — surface Demand Forecast charts, Inventory Risk alerts, Weekly Owner Digest, Preference-based recommendations on the Admin Dashboard
+### P1
+- QR-code table menu (scan → live menu view)
+- PDF receipt / invoice download from Bill view
+- **Folder/file restructuring** for judge-friendly navigation:
+  `backend/routes/{auth,menu,orders,reservations,ai,staff,inventory}.py`
+  `frontend/src/pages/{auth,customer,admin,staff,kitchen,ai}/`
+### P2
+- Delete dead files (`VoiceNotesPlayer.jsx`, `ChefVoiceNotes.jsx`) if still present
+- Table-side pay flow, tip splitter, printable KDS ticket
 
-## Known Compromises
-- Realtime is 3-5s polling, not push (Supabase substitute).
-- OTP verification for email/password is not implemented (fast MVP; JWT + Google covers login).
+## Constraints (do not violate)
+1. 100% pure vegetarian everywhere — no non-veg items/tags/filters
+2. Auth-first gate — no public landing page
+3. Preserve OAuth fragment strip in `AuthCallback.jsx` (`window.history.replaceState`)
+4. Do not reintroduce Voice Notes
+
+## Test credentials
+See `/app/memory/test_credentials.md`
