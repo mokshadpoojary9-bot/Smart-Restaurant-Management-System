@@ -1,0 +1,24 @@
+{
+  "summary": "Iteration 12 verification complete. All 3 primary features + all regressions PASS. Backend: 9/9 pytest passed (menu=37 items across 5 cats {Appetizers,Desserts,Drinks,Mains,Pasta}, all is_veg=true, no banned tokens, all 18 required new dishes present, search paneer/italian/indian meet thresholds, 3 demo logins succeed with correct roles). Frontend: greeting change verified ('Good to see you back'=0, 'Pull up a chair' h2=1, 'First time or returning?' eyebrow=1), rotating hero word cycles (Warmth→Craft observed after 2.6s), 2 animated blur blobs render, login inputs accept typed input & submit lands on /menu (guest), /kitchen (chef), /staff (server). Authed user visiting /login bounces to role dashboard. Anon on 9 protected routes all redirect to /login. No pageerror events. Cart-prune code confirmed in CustomerMenu.jsx lines 33-45.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iteration12_menu.py",
+    "/app/test_reports/pytest/iter12_backend.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "dashFor() helper still duplicated in Login.jsx, Register.jsx, AuthCallback.jsx — extract to /app/frontend/src/lib/roles.js (carry-over from iter11).",
+    "Login.jsx keeps both `if (user) <Navigate>` guard AND post-submit imperative navigate() — consolidate to guard-only (carry-over from iter11).",
+    "CustomerMenu.jsx cart prune uses `try {} catch {}` swallowing JSON.parse errors silently — acceptable for defensive corrupt-cart handling but consider logging in dev.",
+    "Login.jsx left-column copy claims '30+ Veg dishes' — now 37 items in menu; harmless but out-of-sync with backend."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (9/9)", "frontend": "100% (all flows)"},
+  "test_credentials": "guest@ember.demo/guest123 (customer→/menu), chef@ember.demo/chef123 (kitchen→/kitchen), server@ember.demo/staff123 (staff→/staff) — all verified.",
+  "seed_data_creation": "None. Backend GET /api/menu already contains 37 seeded items post-migration.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 12 CLOSED. Menu is confirmed at exactly 37 pure-veg items across 5 categories with all 18 required new dishes present and no banned meat/seafood tokens. Login page redesigned with framer-motion animated blobs, rotating hero word (2.4s interval cycling Warmth→Craft→Fire→Flavour→Stories), floating labels on email/password, glassmorphism card. Greeting 'Good to see you back' fully removed; new h2 is 'Pull up a chair.' with eyebrow 'First time or returning?'. Cart-prune logic in CustomerMenu.jsx (lines 33-45) filters localStorage['cart'] against valid menu ids on every /menu load — code inspected but not runtime-exercised (would require simulating stale cart in localStorage then loading /menu; low risk given straightforward filter+rewrite implementation). Cosmetic: left-column stat still reads '30+ Veg dishes' while backend has 37 — main agent may want to update to '37'.",
+  "rca of the issue": "N/A — no bugs found."
+}

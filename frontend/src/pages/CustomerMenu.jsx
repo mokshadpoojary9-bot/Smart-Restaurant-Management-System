@@ -30,6 +30,20 @@ export default function CustomerMenu() {
         const { data } = await api.get("/menu");
         setItems(data.items);
         setCats([CATS_ALL, ...data.categories]);
+        // Prune cart of any stale items no longer in the menu
+        if (data.items?.length) {
+          const validIds = new Set(data.items.map((i) => i.id));
+          const raw = localStorage.getItem("cart");
+          if (raw) {
+            try {
+              const cart = JSON.parse(raw);
+              const cleaned = cart.filter((c) => validIds.has(c.item_id));
+              if (cleaned.length !== cart.length) {
+                localStorage.setItem("cart", JSON.stringify(cleaned));
+              }
+            } catch {}
+          }
+        }
       } catch (e) {
         // silent — will retry on next poll
       } finally { setLoading(false); }
