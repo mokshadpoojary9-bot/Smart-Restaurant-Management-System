@@ -104,7 +104,7 @@ export default function Login() {
           </form>
 
           <div className="text-sm text-muted-foreground mt-6">
-            New here? <Link to="/register" className="text-ember-400 hover:underline">Create an account</Link>
+            First time here? Just tap <b>Continue with Google</b> above — we'll create your account instantly. No sign-up form, no waiting.
           </div>
 
           <div className="mt-8 p-4 rounded-xl bg-secondary/50 text-xs text-muted-foreground leading-relaxed">

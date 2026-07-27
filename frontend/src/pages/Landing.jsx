@@ -125,24 +125,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="relative max-w-[1400px] mx-auto px-6 md:px-12 py-24">
-        <div className="relative rounded-3xl p-10 md:p-16 border border-ember-400/30 bg-gradient-to-br from-ember-400/10 to-coral-500/10 overflow-hidden">
-          <div className="absolute -top-24 -right-24 w-64 h-64 rounded-full bg-ember-400/20 blur-3xl" />
-          <div className="relative">
-            <h2 className="font-display text-4xl sm:text-5xl tracking-tight mb-4 max-w-2xl">
-              Taste the future of <span className="italic text-ember-400">restaurant operations</span>.
-            </h2>
-            <p className="text-muted-foreground max-w-xl mb-8">
-              Sign in as a diner or the restaurant owner to explore every dashboard, every flow, and every AI feature — all wired to real data.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link to="/register" data-testid="cta-signup" className="px-6 py-3 rounded-full bg-ember-400 text-neutral-900 font-semibold hover:bg-ember-500">Create account</Link>
-              <Link to="/menu" data-testid="cta-menu" className="px-6 py-3 rounded-full border border-border hover:bg-secondary">Browse menu</Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* CTA removed — first page is dedicated to authentication; users are already signed in when they reach Landing */}
 
       <footer className="max-w-[1400px] mx-auto px-6 md:px-12 py-10 text-xs text-muted-foreground border-t border-border">
         <div className="flex flex-wrap items-center justify-between gap-3">

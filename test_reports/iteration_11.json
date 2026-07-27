@@ -1,0 +1,22 @@
+{
+  "summary": "Iteration 11 verification of 4 user-reported bugs after iteration 10. All 4 bugs fixed and all regressions pass. Backend 6/6 (test_iteration7_regression.py). Frontend 7/7 flows (bug1 oauth hash-clear, bug2 email/password login for 3 roles landing on correct dashboards with inputs reflecting typed values, bug3 'Create an account' removed with helper hint present, bug4 Landing CTA section removed, anon gate on 9 protected paths, authed /login redirect, logout).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iteration7_regression.py",
+    "/app/test_reports/pytest/iter11_backend.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "dashFor() helper is now duplicated in Login.jsx, Register.jsx (per prev iter), and AuthCallback.jsx. Recommend extracting to /app/frontend/src/lib/roles.js to enforce DRY.",
+    "Login.jsx still keeps both an in-component `if (user) <Navigate>` guard AND a post-submit imperative navigate(). Consolidating to guard-only would be cleaner (carried over from iter10 review)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (6/6)", "frontend": "100% (7/7 flows)"},
+  "test_credentials": "guest@ember.demo/guest123 (customer→/menu), chef@ember.demo/chef123 (kitchen→/kitchen), server@ember.demo/staff123 (staff→/staff) — all verified.",
+  "seed_data_creation": "None new. Backend regression reuses TEST_ReservOwner create+cancel from iter7 regression suite.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 11 CLOSED. All four user-reported bugs from iter10 finish are resolved:\n- BUG1 (Google OAuth loop): AuthCallback.jsx now calls window.history.replaceState BEFORE navigate on both success and failure paths, verified by code inspection and by simulating /#session_id=FAKE_TEST_123 which yields path=/login and hash='' after failed exchange.\n- BUG2 (login inputs unresponsive): Verified that data-testid=login-email/login-password accept keystrokes and .input_value() returns exactly what was typed for all 3 demo users; submit lands on the correct role dashboard (/menu, /kitchen, /staff).\n- BUG3 ('Create an account' link removed): getByText('Create an account').count()==0 on /login; helper hint 'First time here? Just tap Continue with Google above...' present.\n- BUG4 (Landing CTA removed): On /, 'Taste the future' text count=0, no [data-testid=cta-signup], no [data-testid=cta-menu]; page ends with ROLES then footer.\nRegressions: anon → 9 protected paths all redirect to /login; authed chef visiting /login → /kitchen; logout from dropdown returns to /login. Backend pytest suite (test_iteration7_regression.py) 6/6 pass.\nNOTE for future testers: Always clear both cookies AND localStorage between tests. In initial mixed run, a leftover session_token cookie caused AuthCallback failure path to land on /menu instead of /login. Re-run in isolated clean-state confirmed correct behavior.",
+  "rca of the issue": "N/A — all four bugs verified fixed. AuthCallback loop fix RCA (per code): previously hash '#session_id=...' persisted after navigate, causing AppRouter to re-mount AuthCallback in a loop; now window.history.replaceState wipes the fragment before navigation, breaking the loop."
+}

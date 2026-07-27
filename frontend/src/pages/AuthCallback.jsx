@@ -5,6 +5,10 @@ import { useAuth } from "@/lib/AuthContext";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+function dashFor(role) {
+  return role === "admin" ? "/admin" : role === "staff" ? "/staff" : role === "kitchen" ? "/kitchen" : "/menu";
+}
+
 export default function AuthCallback() {
   const navigate = useNavigate();
   const { setUser } = useAuth();
@@ -16,6 +20,8 @@ export default function AuthCallback() {
     const hash = window.location.hash || "";
     const m = hash.match(/session_id=([^&]+)/);
     if (!m) {
+      // Nothing to exchange — go straight to login.
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
       navigate("/login", { replace: true });
       return;
     }
@@ -24,18 +30,26 @@ export default function AuthCallback() {
       try {
         const { data } = await api.post("/auth/oauth/session", { session_id });
         setUser(data.user);
+        // Wipe the #session_id=... from the URL BEFORE navigating so AppRouter doesn't
+        // re-trigger AuthCallback on the next render.
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
         toast.success(`Welcome, ${data.user.name}!`);
-        const dest = data.user.role === "admin" ? "/admin" : data.user.role === "staff" ? "/staff" : data.user.role === "kitchen" ? "/kitchen" : "/menu";
-        navigate(dest, { replace: true, state: { user: data.user } });
+        navigate(dashFor(data.user.role), { replace: true });
       } catch (e) {
-        toast.error("Google sign-in failed. Please try again.");
+        console.error("OAuth session exchange failed", e);
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        toast.error(
+          e?.response?.data?.detail
+            ? `Google sign-in failed: ${e.response.data.detail}`
+            : "Google sign-in failed. Please try again or use email login."
+        );
         navigate("/login", { replace: true });
       }
     })();
   }, [navigate, setUser]);
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center gap-4">
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
       <Loader2 className="w-8 h-8 text-ember-400 animate-spin" />
       <div className="text-muted-foreground">Setting your table...</div>
     </div>
