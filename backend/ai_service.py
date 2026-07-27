@@ -1,22 +1,46 @@
-"""Gemini-powered AI service via Emergent Universal LLM Key."""
-import os, json, re
+"""Gemini AI service via the public google-generativeai SDK.
+
+Env vars:
+- GEMINI_API_KEY  (required) — get from https://aistudio.google.com/app/apikey
+- GEMINI_MODEL    (optional) — defaults to "gemini-2.5-flash"
+
+If GEMINI_API_KEY is missing all AI calls degrade gracefully to heuristic
+answers so the app never hard-crashes on Render / other hosts.
+"""
+import os
+import json
+import re
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict, Counter
-from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
 
-API_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
-MODEL_PROVIDER = "gemini"
-MODEL_NAME = "gemini-3-flash-preview"
+import google.generativeai as genai
 
-def _new_chat(session_id: str, system_message: str) -> LlmChat:
-    return LlmChat(
-        api_key=API_KEY,
-        session_id=session_id,
-        system_message=system_message,
-    ).with_model(MODEL_PROVIDER, MODEL_NAME)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash").strip()
 
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+
+
+def _model(system_instruction: str) -> genai.GenerativeModel:
+    return genai.GenerativeModel(MODEL_NAME, system_instruction=system_instruction)
+
+
+async def _generate_text(system: str, prompt: str) -> str:
+    """One-shot text generation. Returns empty string on failure."""
+    if not GEMINI_API_KEY:
+        return ""
+    try:
+        model = _model(system)
+        resp = await model.generate_content_async(prompt)
+        return (resp.text or "").strip()
+    except Exception:
+        return ""
+
+
+# ---------------------------------------------------------------- streaming chat
 async def ai_chat_stream(message: str, session_id: str, menu_items: list):
-    """Streaming chatbot: answers menu questions & recommends dishes."""
+    """Streaming chatbot — answers menu questions & recommends dishes."""
     lines = [
         f"- {i['name']} ({i['category']}) — ${i['price']:.2f} — {'veg' if i.get('is_veg') else 'non-veg'} — "
         f"{'AVAILABLE' if i.get('available', True) else 'UNAVAILABLE'} — "
@@ -33,28 +57,31 @@ async def ai_chat_stream(message: str, session_id: str, menu_items: list):
         "Keep replies warm, concise (2-4 short sentences), and always tell the user if something is currently unavailable. "
         f"Here is the live (pure-veg) menu:\n{context}"
     )
-    chat = _new_chat(session_id, system)
+
+    if not GEMINI_API_KEY:
+        yield "Sorry, the AI concierge is offline right now (GEMINI_API_KEY is not configured on the server)."
+        return
+
     try:
-        async for ev in chat.stream_message(UserMessage(text=message)):
-            if isinstance(ev, TextDelta):
-                yield ev.content
-            elif isinstance(ev, StreamDone):
-                break
+        model = _model(system)
+        stream = await model.generate_content_async(message, stream=True)
+        async for chunk in stream:
+            text = getattr(chunk, "text", None)
+            if text:
+                yield text
     except Exception as e:
         yield f"Sorry, I'm having trouble reaching my AI brain right now ({str(e)[:80]}). Please try again."
 
+
+# ---------------------------------------------------------------- recommendations
 async def ai_recommendations(user: dict, menu_items: list, past_orders: list):
     """Return personalized top-3 recommendations."""
     if not menu_items:
         return {"picks": [], "rationale": "Menu is empty."}
     past_dish_counter = Counter()
-    veg_signal = 0
-    total_items = 0
     for o in past_orders:
         for it in o.get("items", []):
             past_dish_counter[it["name"]] += it["qty"]
-            total_items += it["qty"]
-    # Build a compact summary for Gemini
     top_past = past_dish_counter.most_common(5)
     past_str = ", ".join(f"{n} x{c}" for n, c in top_past) or "no previous orders"
     menu_str = "\n".join(
@@ -72,34 +99,27 @@ async def ai_recommendations(user: dict, menu_items: list, past_orders: list):
         f"MENU:\n{menu_str}\n\n"
         "Return only the JSON, no prose."
     )
-    chat = _new_chat(f"rec_{user['user_id']}", system)
-    try:
-        buf = ""
-        async for ev in chat.stream_message(UserMessage(text=prompt)):
-            if isinstance(ev, TextDelta):
-                buf += ev.content
-            elif isinstance(ev, StreamDone):
-                break
-        j = _extract_json(buf)
-        # attach full menu item for each pick
-        by_name = {m["name"].lower(): m for m in menu_items}
-        picks_full = []
-        for p in j.get("picks", []):
-            m = by_name.get(p.get("name", "").lower())
-            if m:
-                picks_full.append({**m, "reason": p.get("reason", "")})
-        if not picks_full:
-            picks_full = [{**menu_items[0], "reason": "House favorite"}] if menu_items else []
-        return {"picks": picks_full[:3], "rationale": j.get("rationale", "Curated for you.")}
-    except Exception as e:
+
+    text = await _generate_text(system, prompt)
+    j = _extract_json(text) if text else {}
+    by_name = {m["name"].lower(): m for m in menu_items}
+    picks_full = []
+    for p in j.get("picks", []):
+        m = by_name.get(p.get("name", "").lower())
+        if m:
+            picks_full.append({**m, "reason": p.get("reason", "")})
+    if not picks_full:
         fallback = sorted(menu_items, key=lambda x: -x.get("rating", 0))[:3]
         return {
             "picks": [{**m, "reason": "Top-rated pick"} for m in fallback],
-            "rationale": f"Live AI unavailable, showing top-rated dishes.",
+            "rationale": "Live AI unavailable, showing top-rated dishes.",
         }
+    return {"picks": picks_full[:3], "rationale": j.get("rationale", "Curated for you.")}
 
+
+# ---------------------------------------------------------------- demand forecast
 async def ai_forecast_demand(orders: list):
-    """Predict busy hours + weekday from historical data (heuristic + AI summary)."""
+    """Predict busy hours + weekday from historical data."""
     hour_counter = Counter()
     dow_counter = Counter()
     for o in orders:
@@ -118,17 +138,11 @@ async def ai_forecast_demand(orders: list):
         f"Peak hours: {top_hours}. Peak days: {top_days}. Total historical orders: {len(orders)}. "
         "Write 2 sentences predicting when the restaurant will be busy this week and suggesting one staffing action."
     )
-    try:
-        chat = _new_chat("forecast", system)
-        buf = ""
-        async for ev in chat.stream_message(UserMessage(text=prompt)):
-            if isinstance(ev, TextDelta):
-                buf += ev.content
-            elif isinstance(ev, StreamDone):
-                break
-        summary = buf.strip() or "Historical data suggests peak times in the evening."
-    except Exception:
-        summary = f"Peak hours are around {top_hours[0][0] if top_hours else 19}:00. Plan extra staff during dinner service."
+    summary = await _generate_text(system, prompt)
+    if not summary:
+        top_h = top_hours[0][0] if top_hours else 19
+        summary = f"Peak hours are around {top_h:02d}:00. Plan extra staff during dinner service."
+
     return {
         "hour_series": forecast_series,
         "top_hours": [{"hour": f"{h:02d}", "orders": c} for h, c in top_hours],
@@ -136,25 +150,22 @@ async def ai_forecast_demand(orders: list):
         "summary": summary,
     }
 
+
+# ---------------------------------------------------------------- inventory alerts
 async def ai_inventory_prediction(inventory: list, recent_orders: list):
     """Flag ingredients likely to run out."""
-    # Estimate consumption rate: 0.1 units per order per matching item
     consumption = defaultdict(float)
     for o in recent_orders:
         for it in o.get("items", []):
             for inv in inventory:
                 if inv["name"].lower() in it["name"].lower():
                     consumption[inv["name"]] += 0.1 * it["qty"]
-    # Orders per hour rate
     hours_span = 24
     at_risk = []
     for inv in inventory:
         used = consumption.get(inv["name"], 0.0)
         rate_per_hour = used / max(hours_span, 1)
-        if rate_per_hour > 0:
-            hours_left = inv["stock"] / rate_per_hour
-        else:
-            hours_left = 999
+        hours_left = inv["stock"] / rate_per_hour if rate_per_hour > 0 else 999
         if inv["stock"] <= inv["threshold"] or hours_left <= 24:
             at_risk.append({
                 "name": inv["name"],
@@ -163,22 +174,18 @@ async def ai_inventory_prediction(inventory: list, recent_orders: list):
                 "hours": round(min(hours_left, 240), 1),
                 "threshold": inv["threshold"],
             })
-    # Ask Gemini for a short summary
+
     system = "You are an inventory analyst. In one short sentence, tell the restaurant owner what to reorder today."
-    at_risk_str = ", ".join(f"{r['name']} ({r['stock']:.1f} {r['unit']}, ~{r['hours']}h)" for r in at_risk) or "no items at risk"
-    try:
-        chat = _new_chat("inv-pred", system)
-        buf = ""
-        async for ev in chat.stream_message(UserMessage(text=f"At-risk items: {at_risk_str}. Write one action sentence.")):
-            if isinstance(ev, TextDelta):
-                buf += ev.content
-            elif isinstance(ev, StreamDone):
-                break
-        summary = buf.strip() or "Restock at-risk items before the dinner rush."
-    except Exception:
+    at_risk_str = ", ".join(
+        f"{r['name']} ({r['stock']:.1f} {r['unit']}, ~{r['hours']}h)" for r in at_risk
+    ) or "no items at risk"
+    summary = await _generate_text(system, f"At-risk items: {at_risk_str}. Write one action sentence.")
+    if not summary:
         summary = "Restock at-risk items before the dinner rush."
     return {"at_risk": at_risk, "summary": summary}
 
+
+# ---------------------------------------------------------------- weekly insight
 async def ai_weekly_insight(orders: list):
     """Plain-English weekly summary for the owner."""
     now = datetime.now(timezone.utc)
@@ -212,16 +219,8 @@ async def ai_weekly_insight(orders: list):
         f"This week: revenue ${revenue:.2f} across {len(weekly)} orders. "
         f"Busiest day: {top_day}. Top items: {top_items}."
     )
-    try:
-        chat = _new_chat("weekly", system)
-        buf = ""
-        async for ev in chat.stream_message(UserMessage(text=prompt)):
-            if isinstance(ev, TextDelta):
-                buf += ev.content
-            elif isinstance(ev, StreamDone):
-                break
-        summary = buf.strip()
-    except Exception:
+    summary = await _generate_text(system, prompt)
+    if not summary:
         summary = f"This week you earned ${revenue:.2f} across {len(weekly)} orders. {top_day} was your busiest day."
     return {
         "revenue": round(revenue, 2),
@@ -231,8 +230,12 @@ async def ai_weekly_insight(orders: list):
         "summary": summary,
     }
 
+
+# ---------------------------------------------------------------- helpers
 def _extract_json(s: str):
-    """Extract first JSON object from a string safely."""
+    """Extract the first JSON object from a string safely."""
+    if not s:
+        return {}
     m = re.search(r"\{[\s\S]*\}", s)
     if not m:
         return {}
