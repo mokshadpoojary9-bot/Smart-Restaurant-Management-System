@@ -188,7 +188,6 @@ DEMO_INVENTORY = [
 async def seed(db, owner_email: str):
     now = datetime.now(timezone.utc).isoformat()
 
-    # Owner user
     if owner_email:
         existing = await db.users.find_one({"email": owner_email})
         if not existing:
@@ -199,7 +198,6 @@ async def seed(db, owner_email: str):
         elif existing.get("role") != "admin":
             await db.users.update_one({"email": owner_email}, {"$set": {"role": "admin"}})
 
-    # Demo staff accounts
     demo_accounts = [
         {"email": "chef@ember.demo", "name": "Chef Marco", "role": "kitchen", "password": "chef123"},
         {"email": "server@ember.demo", "name": "Sofia (Server)", "role": "staff", "password": "staff123"},
@@ -212,18 +210,16 @@ async def seed(db, owner_email: str):
                 "password_hash": _hash(acc["password"]), "picture": "", "created_at": now,
             })
 
-    # Migration: force-reseed menu if any non-veg item exists or menu is empty
-total_count = await db.menu_items.count_documents({})
-if total_count == 0:
-    for m in DEMO_MENU:
-        await db.menu_items.insert_one({
-            "id": _id("item"),
-            **m,
-            "is_veg": True,
-            "available": True,
-        })
+    total_count = await db.menu_items.count_documents({})
+    if total_count == 0:
+        for m in DEMO_MENU:
+            await db.menu_items.insert_one({
+                "id": _id("item"),
+                **m,
+                "is_veg": True,
+                "available": True,
+            })
 
-    # Tables
     if await db.tables.count_documents({}) == 0:
         for n in range(1, 13):
             await db.tables.insert_one({
@@ -232,7 +228,6 @@ if total_count == 0:
                 "status": "free", "current_order_id": None, "updated_at": now,
             })
 
-    # Inventory — reseed if empty
     if await db.inventory_items.count_documents({}) == 0:
         for inv in DEMO_INVENTORY:
             await db.inventory_items.insert_one({
