@@ -72,7 +72,6 @@ export default function CustomerMenu() {
 
   const onAdd = (m) => {
     if (!user) { toast.error("Please sign in to place an order"); return; }
-    if (user.role !== "customer") { toast.error("Only diners can add to cart"); return; }
     if (!m.available) { toast.error(`${m.name} is currently unavailable`); return; }
     add(m);
     toast.success(`${m.name} added to cart`);
