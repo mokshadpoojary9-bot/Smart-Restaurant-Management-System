@@ -213,19 +213,15 @@ async def seed(db, owner_email: str):
             })
 
     # Migration: force-reseed menu if any non-veg item exists or menu is empty
-    non_veg_count = await db.menu_items.count_documents({"is_veg": False})
-    total_count = await db.menu_items.count_documents({})
-    veg_names = {m["name"] for m in DEMO_MENU}
-    existing_names = {d["name"] async for d in db.menu_items.find({}, {"name": 1})}
-    if non_veg_count > 0 or total_count == 0 or existing_names != veg_names:
-        await db.menu_items.delete_many({})
-        for m in DEMO_MENU:
-            await db.menu_items.insert_one({
-                "id": _id("item"),
-                **m,
-                "is_veg": True,   # enforce
-                "available": True,
-            })
+total_count = await db.menu_items.count_documents({})
+if total_count == 0:
+    for m in DEMO_MENU:
+        await db.menu_items.insert_one({
+            "id": _id("item"),
+            **m,
+            "is_veg": True,
+            "available": True,
+        })
 
     # Tables
     if await db.tables.count_documents({}) == 0:
